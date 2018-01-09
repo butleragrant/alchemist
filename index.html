@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css"
+      integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+    <div class="container-fluid" id="edit-recipe-container">
+      <div class="row">
+        <div class="col-sm-12">
+          <h1>Alchemist</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <h2 id="edit-recipe-name">Recipe Name</h2>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <div id="serving-size-area">
+            <h3>Serving Size</h3>
+            <input type="number" id="serving-size-text" class="quantity-input form-control"/>
+            <select id="serving-size-unit" class="form-control">
+              <option>g</option>
+              <option>oz</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <h3>Food Ingredients:</h3>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Food</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>Added Sugars</th>
+              </tr>
+            </thead>
+            <tbody id="edit-recipe-subFoods">
+
+            </tbody>
+          </table>
+
+          <div id="usda-search-area">
+            <h4>Search for a food</h4>
+            <input id="usda-search-box" type="text" />
+            <button id="usda-search-button" type="button" class="btn btn-primary">Search!</button>
+            <div id="loading-display">
+              Loading...
+            </div>
+            <table id="usda-search-results">
+            </table>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+
+          <h3>Recipe Ingredients:</h3>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Recipe</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+              </tr>
+            </thead>
+            <tbody id="edit-recipe-subRecipes">
+
+            </tbody>
+          </table>
+
+
+          <div id="recipe-search-area">
+            <h4>Add a sub recipe</h4>
+            <input id="recipe-search-box" type="text" />
+            <table id="recipe-search-results">
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <button id="recipe-save-button" class="btn btn-lg btn-primary" type="button">Save Recipe</button>
+
+    </div>
+
+    <div id="recipe-list-container" class="container-fluid">
+      <div class="row">
+        <div class="col-sm-12">
+          <h1>Alchemist</h1>
+        </div>
+      </div>
+
+      <h2>My Recipes:</h2>
+      <table id="recipe-list">
+
+      </table>
+      <input type="text" id="new-recipe-text" placeholder="New Recipe" maxlength="50" rows="1" cols="50" />
+      <button id="new-recipe-button" class="btn btn-primary">Create Recipe</button>
+      <button id="save-recipes-button" class="btn btn-primary btn-lg">Save Recipes</button>
+    </div>
+
+    <!-- All of the Node.js APIs are available in this renderer process. -->
+    <footer>
+      We are using Node.js <script>document.write(process.versions.node)</script>,
+      Chromium <script>document.write(process.versions.chrome)</script>,
+      and Electron <script>document.write(process.versions.electron)</script>.
+    </footer>
+  </body>
+
+  <script>
+    // You can also require other files to run in this process
+    require('./renderer.js')
+  </script>
+</html>
