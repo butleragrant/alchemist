@@ -1,4 +1,6 @@
 const nut = require('./nutrition.js');
+const electron = require('electron');
+const fs = require('fs');
 
 function setup() {
   let hash = location.hash.replace(/^.*#/, '');
@@ -51,6 +53,28 @@ function setup() {
   document.getElementById("calcium-dv").innerHTML = nutrientPercentDV[301];
   document.getElementById("iron-dv").innerHTML = nutrientPercentDV[303];
   document.getElementById("potassium-dv").innerHTML = nutrientPercentDV[306];
+
+  document.getElementById("print-button").addEventListener("click", function() {
+    document.getElementById("print-area").style.display = "none";
+    let thisBrowserWindow = electron.remote.getCurrentWindow();
+    let webContents = electron.remote.getCurrentWebContents();
+    electron.remote.dialog.showSaveDialog(thisBrowserWindow, {}, function(filename) {
+      webContents.printToPDF({landscape: true}, function(error, pdf) {
+        document.getElementById("print-area").style.display = "block";
+        if(error) {
+          throw error;
+        } else {
+          fs.writeFile(filename, pdf, function(error) {
+            if(error) {
+              throw error;
+            } else {
+              console.log("Saving Complete");
+            }
+          })
+        }
+      })
+    });
+  });
 }
 
 setup();
