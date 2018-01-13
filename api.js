@@ -4,7 +4,12 @@
  * @author Grant
  */
 
- /*
+const SUCCESS = 0;
+const NO_RESULTS = 1;
+const INVALID_KEY = 2;
+const URL_NOT_FOUND = 3;
+
+/*
  * ApiSession creates an object with functions to search the USDA database for
  * foods and get nutrition data for foods.
  * Note: the USDA API is stateless and thus the idea of a 'session' here is
@@ -13,28 +18,44 @@
  * @param apiKey {string} The API key to use for requests
  */
 
-exports.ApiSession = function(domain, apiKey) {
+function ApiSession(domain, apiKey) {
   return {
     /*
      * foodSearch sends a food-search request for the given word and calls
-     * the callback function on the returned JSON object.
+     * the callback function on the returned list of foods
      * @param word {string} The word to search the database for
      * @param callback {function} The function to call on the resulting JSON object
+     * The callback
      */
     foodSearch: function(word, callback) {
       let searchRequest = new XMLHttpRequest();
       searchRequest.onreadystatechange = function() {
-        console.log("foodSearch readystate change");
-        if(this.readyState == 4 && this.status == 200) {
-          let response = JSON.parse(this.responseText);
-          callback(response);
-        } else {
-          console.log("foodSearch request returned: " + this.readyState + " " + this.status);
+        if(this.readyState == 4) {
+          if(this.status == 200) {
+            let response = JSON.parse(this.responseText);
+            if(response.hasOwnProperty("error")) {
+              callback({}, INVALID_KEY);
+            } else if(response.hasOwnProperty("errors")) {
+              callback({}, NO_RESULTS);
+            } else {
+              let responseFoods = [];
+              console.log("Response text is: " + this.responseText);
+              for(let i = response.list.start; i < response.list.end; i++) {
+                responseFoods[i] = {
+                  name: response.list.item[i].name,
+                  group: response.list.item[i].group,
+                  ndbno: response.list.item[i].ndbno
+                };
+              }
+              callback(responseFoods, SUCCESS);
+            }
+          } else {
+            callback({}, URL_NOT_FOUND);
+          }
         }
       }
+
       let requestText = domain + "search/?format=json&q=" + word + "&sort=r&max=25&ds=Standard\ Reference&offset=0&api_key=" + apiKey;
-      console.log("opening");
-      console.log(searchRequest.readyState + " " + searchRequest.status);
       searchRequest.open("GET", requestText, true);
       searchRequest.send();
     },
@@ -49,14 +70,12 @@ exports.ApiSession = function(domain, apiKey) {
     nutritionDataRequest : function(foodList, callback) {
       let nutritionRequest = new XMLHttpRequest();
       nutritionRequest.onreadystatechange = function() {
-        console.log("nutritionData readystate change");
-        if(this.readyState == 4 && this.status == 200) {
-          let response = JSON.parse(this.responseText);
-          callback(response);
-        } else {
-          console.log("nutritionData request returned: " + this.readyState + " " + this.status);
+        if(this.readyState == 4) {
+          if(this.status == 200) {
+            callback(JSON.parse(this.responseText));
+          }
         }
-      }
+      };
 
       let requestText = domain + "V2/reports?format=json&api_key=" + apiKey + "&type=b";
 
@@ -66,7 +85,14 @@ exports.ApiSession = function(domain, apiKey) {
 
       nutritionRequest.open("GET", requestText, true);
       nutritionRequest.send();
-
     }
   }
+}
+
+module.exports = {
+  SUCCESS,
+  NO_RESULTS,
+  INVALID_KEY,
+  URL_NOT_FOUND,
+  ApiSession
 }

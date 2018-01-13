@@ -18,7 +18,7 @@ var nutritionWindow;
 //setup() runs onload, hooks static buttons, loads user data, and sets the
 //initial state
 function setup() {
-  apiSession = api.ApiSession("https://api.nal.usda.gov/ndb/", "Vv1go4x2BTtRcV4Ej2qPF5IR0WitHEsd4CH3lTL3");
+  apiSession = api.ApiSession("https://api.nal.usda.gov/ndb/", "DEMO_KEY");
   recipeLibrary = rm.RecipeLibrary(ds.loadData('recipeData.js'));
   renderRecipeList();
   document.getElementById("usda-search-button").addEventListener('click', foodSearch);
@@ -85,7 +85,7 @@ function renderRecipeList() {
     nutritionButton.className += " btn btn-primary";
     nutritionButton.addEventListener('click', function() {
       nut.getNutritionData(currentRecipeName, recipeLibrary, apiSession,
-        function(nutritionData) {
+        function(nutritionData, responseCode) {
         let hash = JSON.stringify(nutritionData);
         console.log("nutrient totals: " + JSON.stringify(nutritionData));
 
@@ -367,12 +367,13 @@ function recipeSearch() {
 
 //Function for searching the NDB for a food from the recipe editing screen
 function foodSearch() {
-  //Search results constructor in order to deal with the response
-  function SearchResults(searchResponse) {
-    this.itemList = searchResponse.list.item;
-    this.searchParameter = searchResponse.list.q;
-    this.start = searchResponse.list.start;
-    this.end = searchResponse.list.end;
+  //Returns an html row with the given message
+  function errorRow(message) {
+    let errorRow = document.createElement('tr');
+    let errorCell = document.createElement('td');
+    errorCell.innerHTML = message;
+    errorRow.appendChild(errorCell);
+    return errorRow;
   }
 
   let searchText = document.getElementById("usda-search-box").value;
@@ -381,35 +382,43 @@ function foodSearch() {
   loadingGif.style.display = "block";
   searchResultsArea.innerHTML = "";
   apiSession.foodSearch(searchText,
-    function(response) {
-      let lastSearch = new SearchResults(response);
+    function(responseFoods, responseCode) {
       loadingGif.style.display = "none";
-      for(i = lastSearch.start; i < lastSearch.end; i++) {
-        let current = lastSearch.itemList[i];
-        let currentRow = document.createElement('tr');
-        let nameCell = document.createElement('td');
-        let categoryCell = document.createElement('td');
-        let addCell = document.createElement('td')
-        let addButton = document.createElement('button');
-        addButton.innerHTML = "+";
-        addButton.className += " btn btn-primary";
+      //The normal case:
+      if(responseCode == api.SUCCESS) {
+        for(let i = 0; i < responseFoods.length; i++) {
+          let currentFood = responseFoods[i];
+          let currentRow = document.createElement('tr');
+          let nameCell = document.createElement('td');
+          let categoryCell = document.createElement('td');
+          let addCell = document.createElement('td')
+          let addButton = document.createElement('button');
+          addButton.innerHTML = "+";
+          addButton.className += " btn btn-primary";
 
-        nameCell.innerHTML = current.name;
-        categoryCell.innerHTML = current.group;
-        addButton.addEventListener('click', function() {
-          editingRecipe.addSubFood(current.ndbno, current.name,
-            meas.Measurement(100, meas.GRAMS), false);
-          renderRecipeEditing();
-        })
+          nameCell.innerHTML = currentFood.name;
+          categoryCell.innerHTML = currentFood.group;
+          addButton.addEventListener('click', function() {
+            editingRecipe.addSubFood(currentFood.ndbno, currentFood.name,
+              meas.Measurement(100, meas.GRAMS), false);
+            renderRecipeEditing();
+          });
 
-        addCell.appendChild(addButton);
+          addCell.appendChild(addButton);
 
-        currentRow.appendChild(nameCell);
-        currentRow.appendChild(categoryCell);
-        currentRow.appendChild(addCell);
-        searchResultsArea.appendChild(currentRow);
+          currentRow.appendChild(nameCell);
+          currentRow.appendChild(categoryCell);
+          currentRow.appendChild(addCell);
+          searchResultsArea.appendChild(currentRow);
+        }
+
+      } else if(responseCode == api.NO_RESULTS) {
+        searchResultsArea.appendChild(errorRow("No results found"));
+      } else if(responseCode == api.INVALID_KEY) {
+        searchResultsArea.appendChild(errorRow("Invalid API key"));
+      } else {
+        searchResultsArea.appendChild(errorRow("URL not found"));
       }
-
     });
 }
 
