@@ -10,6 +10,7 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 
+const API_URL = "https://api.nal.usda.gov/ndb/";
 var recipeLibrary;
 var editingRecipe; //the recipe currently loaded in editor
 var apiSession;
@@ -18,7 +19,7 @@ var nutritionWindow;
 //setup() runs onload, hooks static buttons, loads user data, and sets the
 //initial state
 function setup() {
-  apiSession = api.ApiSession("https://api.nal.usda.gov/ndb/", "DEMO_KEY");
+  apiSession = api.ApiSession("API_URL", "DEMO_KEY");
   recipeLibrary = rm.RecipeLibrary(ds.loadData('recipeData.js'));
   renderRecipeList();
   document.getElementById("usda-search-button").addEventListener('click', foodSearch);
