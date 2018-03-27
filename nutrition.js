@@ -103,6 +103,11 @@ const nutrientList = {
  */
 function getNutritionData(recipeName, recipeLibrary, api, callback) {
   let recipe = recipeLibrary.getRecipe(recipeName);
+
+  if(!recipeLibrary.isValid(recipe)) {
+    return null;
+  }
+
   let foodTotals = totalFoodsInMeasure(recipe, recipeLibrary, recipe.servingSize);
   let foodList = Object.keys(foodTotals);
 
@@ -260,7 +265,68 @@ function getNutritionData(recipeName, recipeLibrary, api, callback) {
 
 }
 
+/*
+ * Generates a string listing the ingredients of the given recipe
+ * @param recipeName the name of the recipe to list the ingredients of
+ * @param recipeLibrary the library of all recipes and their subrecipes/ingredients
+ */
+function generateIngredientString(recipeName, recipeLibrary) {
+  let recipe = recipeLibrary.getRecipe(recipeName);
+
+  if(!recipeLibrary.isValid(recipe)) {
+    return null;
+  }
+
+  let subRecipes = recipe.subRecipes;
+  let subFoods = recipe.subFoods;
+
+  let ingredients = [];
+  //add recipe ingredients:
+  for(let subRecipeName in subRecipes) {
+    if(subRecipes.hasOwnProperty(subRecipeName)) {
+      ingredients.push({
+        name: subRecipeName,
+        amount: subRecipes[subRecipeName].quantityAsGrams,
+        isRecipe: true
+      });
+    }
+
+  }
+  //next do food ingredients:
+  for(let ndbno in subFoods) {
+    if(subFoods.hasOwnProperty(ndbno)) {
+      ingredients.push({
+        name: subFoods[ndbno].name,
+        amount: subFoods[ndbno].amount.quantityAsGrams,
+        isRecipe: false
+      });
+    }
+
+  }
+
+  ingredients.sort(function(first, second) {
+    return second.amount - first.amount;
+  });
+
+  let ingredientString = "";
+  for(let i = 0; i < ingredients.length; i++) {
+    ingredientString += ingredients[i].name;
+    if(ingredients[i].isRecipe) {
+      ingredientString += "(";
+      ingredientString += generateIngredientString(ingredients[i].name, recipeLibrary);
+      ingredientString += ")";
+    }
+
+    if(i < ingredients.length - 1) {
+      ingredientString += ", ";
+    }
+  }
+
+  return ingredientString;
+}
+
 module.exports = {
   nutrientList,
-  getNutritionData
+  getNutritionData,
+  generateIngredientString
 }

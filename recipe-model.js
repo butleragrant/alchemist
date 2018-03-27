@@ -143,25 +143,89 @@ function Recipe(recipeName, recipeData) {
  * edit recipes, generate new recipes, save recipes, and delete recipes.
  * RecipeLibrary objects are constructed using the raw data alchemist stores on
  * disk.
- * TODO: we need to prevent cycles from happening(recipes with themselves as ingredients)
  * @param recipeData The raw data to construct the library with
  */
 function RecipeLibrary(recipeData) {
 
-  //TODO:
-  function isValid(editedRecipe) {
+  let recipes = {};
+  for(let recipeName in recipeData) {
+    if(recipeData.hasOwnProperty(recipeName)) {
+      recipes[recipeName] = Recipe(recipeName, recipeData[recipeName]);
+    }
+  }
+
+  /*
+   * Checks to see if a recipe object is valid and has no subrecipe cycles
+   * @param recipe the recipe object to check for validity
+   */
+  function isValid(recipe) {
+    let toExplore = [];
+    for(let subRecipeName in recipe.subRecipes) {
+      if(recipe.subRecipes.hasOwnProperty(subRecipeName)) {
+        console.log("pushing subrecipe: " + subRecipeName);
+        toExplore.push(subRecipeName);
+      }
+    }
+
+    while(toExplore.length > 0) {
+      let exploringName = toExplore.pop();
+      if(recipes[exploringName] == null || exploringName === recipe.name) {
+        //the parent is not valid if it has a non-existent sub recipe or has a
+        //sub recipe child/grandchild etc. with the same name
+        console.log("returning false, exploring name is: " + exploringName);
+        return false;
+      }
+      let exploring = recipes[exploringName];
+      for(let subRecipeName in exploring.subRecipes) {
+        if(exploring.subRecipes.hasOwnProperty(subRecipeName)) {
+          console.log("pushing subrecipe: " + subRecipeName);
+          toExplore.push(subRecipeName);
+        }
+      }
+    }
+
+    return true;
+  }
+
+  function isValidChild(recipe, subRecipeName) {
+    let toExplore = [subRecipeName];
+
+    while(toExplore.length > 0) {
+      let exploringName = toExplore.pop();
+      if(exploringName === recipe.name) {
+        return false;
+      }
+      let exploring = recipes[exploringName];
+      for(let subRecipeName in exploring) {
+        if(exploring.hasOwnProperty(subRecipeName)) {
+          toExplore.push(subRecipeName);
+        }
+      }
+    }
+
     return true;
   }
 
   return {
     //Returns a list of the recipes in the RecipeLibrary
     get recipeList() {
-      return Object.keys(recipeData);
+      return Object.keys(recipes);
     },
 
     //The save data for this RecipeLibrary
     get saveData() {
-      return recipeData;
+      let newRecipeData = {};
+      for(let recipeName in recipes) {
+        console.log("potentially adding recipe " + recipeName + " to newRecipeData");
+        if(recipes.hasOwnProperty(recipeName)) {
+          console.log("adding recipe " + recipeName + " to newRecipeData");
+          newRecipeData[recipeName] = recipes[recipeName].saveData;
+        }
+      }
+
+      console.log("newRecipeData looks like: " + JSON.stringify(newRecipeData));
+      return newRecipeData;
+
     },
 
     /*
@@ -185,7 +249,12 @@ function RecipeLibrary(recipeData) {
      * Recipe object for
      */
     getRecipe: function(recipeName) {
-      return Recipe(recipeName, recipeData[recipeName]);
+      if(recipes[recipeName] == null) {
+        return null;
+      } else {
+        //return a copy, not the original in case edits are discarded
+        return Recipe(recipeName, recipes[recipeName].saveData);
+      }
     },
 
     /*
@@ -193,8 +262,9 @@ function RecipeLibrary(recipeData) {
      * @param newRecipe the Recipe object to save
      */
     saveRecipe: function(newRecipe) {
+      console.log("the recipe being saved looks like: " + JSON.stringify(newRecipe));
       if(isValid(newRecipe)) {
-        recipeData[newRecipe.name] = newRecipe.saveData;
+        recipes[newRecipe.name] = newRecipe;
       }
     },
 
@@ -203,10 +273,12 @@ function RecipeLibrary(recipeData) {
      * @param recipeName The name of the recipe to delete
      */
     deleteRecipe: function(recipeName) {
-      delete recipeData[recipeName];
+      delete recipes[recipeName];
     },
 
-    isValid
+    isValid,
+
+    isValidChild
   }
 }
 

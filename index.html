@@ -2,9 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css"
-      integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+    <title>Alchemist</title>
     <link rel="stylesheet" href="index.css">
   </head>
   <body>
@@ -108,9 +106,12 @@
 
     <!-- All of the Node.js APIs are available in this renderer process. -->
     <footer>
-      We are using Node.js <script>document.write(process.versions.node)</script>,
-      Chromium <script>document.write(process.versions.chrome)</script>,
-      and Electron <script>document.write(process.versions.electron)</script>.
+      <hr />
+      <h4>
+        API Key:
+        <input type="text" id="api-key-text" placeholder="DEMO_KEY" maxlength="50" rows="1" cols="50" />
+        <button id="api-key-update-button" class="btn btn-lg btn-primary" type="button">Update Key</button>
+      </h4>
     </footer>
   </body>
 

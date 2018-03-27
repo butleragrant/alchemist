@@ -14,6 +14,7 @@ var userDataPath = electron.remote.app.getPath('userData');
  * the userData directory
  */
 function loadData(fileName) {
+  console.log("loading data");
   let filePath = path.join(userDataPath, fileName);
   try {
     return JSON.parse(fs.readFileSync(filePath));

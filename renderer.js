@@ -11,6 +11,10 @@ const url = require('url');
 const path = require('path');
 
 const API_URL = "https://api.nal.usda.gov/ndb/";
+const RECIPE_DATA_FILENAME = "alchemist-recipes.json";
+const CONF_FILENAME = "alchemist-conf.json";
+
+var userSettings;
 var recipeLibrary;
 var editingRecipe; //the recipe currently loaded in editor
 var apiSession;
@@ -19,8 +23,19 @@ var nutritionWindow;
 //setup() runs onload, hooks static buttons, loads user data, and sets the
 //initial state
 function setup() {
-  apiSession = api.ApiSession("API_URL", "DEMO_KEY");
-  recipeLibrary = rm.RecipeLibrary(ds.loadData('recipeData.js'));
+  //API key settings:
+  userSettings = ds.loadData(CONF_FILENAME);
+  if(userSettings.apiKey == null) {
+    userSettings.apiKey = "DEMO_KEY";
+  }
+  let apiText = document.getElementById("api-key-text");
+  apiText.value = userSettings.apiKey;
+
+  document.getElementById("api-key-update-button").addEventListener('click', updateAPIKey);
+  updateAPIKey();
+
+  recipeLibrary = rm.RecipeLibrary(ds.loadData(RECIPE_DATA_FILENAME));
+
   renderRecipeList();
   document.getElementById("usda-search-button").addEventListener('click', foodSearch);
   document.getElementById("usda-search-box").addEventListener('keydown', function(key) {
@@ -39,11 +54,22 @@ function setup() {
 
   document.getElementById("recipe-search-box").addEventListener('input', recipeSearch);
   document.getElementById("save-recipes-button").addEventListener('click', saveAllRecipes);
+
+
   //other button hooks etc.
 }
 
+function updateAPIKey() {
+  let apiText = document.getElementById("api-key-text");
+  userSettings.apiKey = apiText.value;
+  apiSession = api.ApiSession(API_URL, userSettings.apiKey);
+  ds.saveData(userSettings, CONF_FILENAME, function() {
+    console.log("saved settings");
+  });
+}
+
 function saveAllRecipes() {
-  ds.saveData(recipeLibrary.saveData, 'recipeData.js', function() {
+  ds.saveData(recipeLibrary.saveData, RECIPE_DATA_FILENAME, function() {
     console.log("saving complete");
   });
 }
@@ -60,13 +86,12 @@ function renderRecipeList() {
     let currentRow = document.createElement('tr');
     let nameCell = document.createElement('td');
     let editCell = document.createElement('td');
-    let ingredientCell = document.createElement('td');
     let nutritionCell = document.createElement('td');
+    let ingredientsCell = document.createElement('td');
     let deleteCell = document.createElement('td');
-
     let editButton = document.createElement('button');
-    let ingredientButton = document.createElement('button');
     let nutritionButton = document.createElement('button');
+    let ingredientsButton = document.createElement('button');
     let deleteButton = document.createElement('button');
 
     editButton.innerHTML = "Edit";
@@ -74,12 +99,6 @@ function renderRecipeList() {
     editButton.addEventListener('click', function() {
       editingRecipe = recipeLibrary.getRecipe(currentRecipeName);
       renderRecipeEditing();
-    });
-
-    ingredientButton.innerHTML = "Ingredient List";
-    ingredientButton.className += " btn btn-primary";
-    ingredientButton.addEventListener('click', function() {
-
     });
 
     nutritionButton.innerHTML = "Nutrition Facts";
@@ -103,6 +122,14 @@ function renderRecipeList() {
 
     });
 
+    ingredientsButton.innerHTML = "Copy Ingredients to Clipboard";
+    ingredientsButton.className += " btn btn-primary";
+    ingredientsButton.addEventListener('click', function() {
+      let ingredientsList =
+        nut.generateIngredientString(currentRecipeName, recipeLibrary);
+      electron.clipboard.writeText(ingredientsList);
+    });
+
     deleteButton.innerHTML = "Delete";
     deleteButton.className += " btn btn-primary";
     deleteButton.addEventListener('click', function() {
@@ -112,14 +139,14 @@ function renderRecipeList() {
 
     nameCell.innerHTML = currentRecipeName;
     editCell.appendChild(editButton);
-    ingredientCell.appendChild(ingredientButton);
     nutritionCell.appendChild(nutritionButton);
+    ingredientsCell.appendChild(ingredientsButton);
     deleteCell.appendChild(deleteButton);
 
     currentRow.appendChild(nameCell);
     currentRow.appendChild(editCell);
-    currentRow.appendChild(ingredientCell);
     currentRow.appendChild(nutritionCell);
+    currentRow.appendChild(ingredientsCell);
     currentRow.appendChild(deleteCell);
 
     recipeList.appendChild(currentRow);
@@ -167,6 +194,12 @@ function renderRecipeEditing() {
   document.getElementById("edit-recipe-container").style.display = "block";
   document.getElementById("loading-display").style.display = "none";
   document.getElementById("recipe-list-container").style.display = "none";
+
+  if(recipeLibrary.isValid(editingRecipe)) {
+    document.getElementById("recipe-save-button").disabled = false;
+  } else {
+    document.getElementById("recipe-save-button").disabled = true;
+  }
 }
 
 //renders the subfoods list of the recipe editing screen
@@ -342,7 +375,8 @@ function recipeSearch() {
   let recipes = recipeLibrary.recipeList;
   for(let i = 0; i < recipes.length; i++) {
     let recipeName = recipes[i];
-    if(searchText.length > 0 && recipeName.startsWith(searchText)) {
+    if(searchText.length > 0 && recipeName.startsWith(searchText)
+        && recipeLibrary.isValidChild(editingRecipe, recipeName)) {
       let newRow = document.createElement('tr');
       let nameCell = document.createElement('td');
       let addCell = document.createElement('td');
