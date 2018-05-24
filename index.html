@@ -3,32 +3,44 @@
   <head>
     <meta charset="UTF-8">
     <title>Alchemist</title>
-    <link rel="stylesheet" href="index.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="tabular-nutrition.css"/>
   </head>
+
   <body>
-    <div class="container-fluid" id="edit-recipe-container">
+    <div id="top-bar">
+      <div id="top-bar-menus">
+        <button id="settings-button" class="btn btn-lg mt-2 mr-2 ml-2" data-toggle="modal" data-target="#settings-modal">Settings</button>
+      </div>
+    </div>
+
+    <div class="container mt-5" id="edit-recipe-container">
       <div class="row">
         <div class="col-sm-12">
-          <h1>Alchemist</h1>
+          <form>
+            <h3>Edit a recipe:</h3>
+            <div class="row">
+              <div class="col">
+                <div class="form-group">
+                  <label for="recipe-name-input">Recipe Name</label>
+                  <input id="recipe-name-input" type="text" placeholder="Recipe Name" class="form-control"/>
+                </div>
+              </div>
+
+              <div class="col">
+                <label for="serving-size-input">Serving Size</label>
+                <div class="form-group form-inline">
+                  <input type="number" id="serving-size-input" class="quantity-input form-control"/>
+                  <select id="serving-size-unit" class="form-control unit-select ml-2">
+                  </select>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-      <div class="row">
-        <div class="col-sm-12">
-          <h2 id="edit-recipe-name">Recipe Name</h2>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-12">
-          <div id="serving-size-area">
-            <h3>Serving Size</h3>
-            <input type="number" id="serving-size-text" class="quantity-input form-control"/>
-            <select id="serving-size-unit" class="form-control">
-              <option>g</option>
-              <option>oz</option>
-            </select>
-          </div>
-        </div>
-      </div>
+
       <div class="row">
         <div class="col-sm-6">
           <h3>Food Ingredients:</h3>
@@ -38,28 +50,29 @@
                 <th>Food</th>
                 <th>Quantity</th>
                 <th>Unit</th>
-                <th>Added Sugars</th>
               </tr>
             </thead>
             <tbody id="edit-recipe-subFoods">
-
+              <tr class="empty-table-row">
+                <td>No foods have been added yet, add one below.</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
             </tbody>
           </table>
 
-          <div id="usda-search-area">
-            <h4>Search for a food</h4>
-            <input id="usda-search-box" type="text" />
-            <button id="usda-search-button" type="button" class="btn btn-primary">Search!</button>
-            <div id="loading-display">
-              Loading...
-            </div>
-            <table id="usda-search-results">
-            </table>
-          </div>
+          <h4>Add a food ingredient:</h4>
+          <input type="text" id="food-search-text" class="form-control search-box" />
+          <table class="table">
+            <tbody id="food-search-results">
+              <tr class="empty-table-row">
+                <td>No results</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div class="col-sm-6">
-
           <h3>Recipe Ingredients:</h3>
           <table class="table table-striped">
             <thead>
@@ -70,53 +83,421 @@
               </tr>
             </thead>
             <tbody id="edit-recipe-subRecipes">
-
+              <tr class="empty-table-row">
+                <td>No recipes have been added yet, add one below.</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
             </tbody>
           </table>
 
+          <h4>Add a recipe ingredient:</h4>
+          <input type="text" id="recipe-search-text" class="form-control search-box" />
+          <table class="table">
+            <tbody id="recipe-search-results">
+              <tr class="empty-table-row">
+                <td>No results</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          <div id="recipe-search-area">
-            <h4>Add a sub recipe</h4>
-            <input id="recipe-search-box" type="text" />
-            <table id="recipe-search-results">
-            </table>
+      <div class="row">
+        <div class="col-sm-12">
+          <button id="recipe-save-button" class="btn btn-lg btn-primary" type="button">Save Recipe</button>
+          <button id="recipe-cancel-button" class="btn btn-lg btn-warning" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="main-page-container" class="container mt-5">
+      <div class="row">
+        <div class="col-sm-6">
+          <h2>My Recipes:</h2>
+          <table id="recipe-list">
+            <tr class="empty-table-row">
+              <td>No recipes yet, add a recipe below</td>
+            </tr>
+          </table>
+          <button id="new-recipe-button" class="btn btn-primary">Create Recipe</button>
+        </div>
+
+        <div class="col-sm-6">
+          <h2>My Foods:</h2>
+          <table id="food-list">
+            <tr class="empty-table-row">
+              <td>No foods yet, add a food below</td>
+            </tr>
+          </table>
+          <button id="new-food-button" class="btn btn-primary">Add a Food</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-sm-12">
+          <button id="save-button" class="btn btn-primary">Save Food and Recipe Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-5" id="edit-food-container">
+      <div class="row">
+        <div class="col-sm-12">
+          <div id="food-editor-area">
+            <h3>Edit a food:</h3>
+            <form>
+              <div class="form-group">
+                <label for="food-name-input">Food Name</label>
+                <input type="text" class="form-control" id="food-name-input" placeholder="Food name" />
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <label for="food-serving-size-input">Serving Size</label>
+                  <div class="form-group form-inline">
+                    <input type="number" class="form-control" id="food-serving-size-input" placeholder="100" />
+                    <select id="food-serving-size-unit" class="form-control unit-select ml-2">
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="calories-input">Calories</label>
+                    <input type="number" class="form-control" id="calories-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="fat-input">Total Fat</label>
+                    <input type="number" class="form-control" id="fat-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="carbohydrate-input">Total Carbohydrate</label>
+                    <input type="number" class="form-control" id="carbohydrate-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="saturated-fat-input">Saturated Fat</label>
+                    <input type="number" class="form-control" id="saturated-fat-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="fiber-input">Dietary Fiber</label>
+                    <input type="number" class="form-control" id="fiber-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="trans-fat-input">Trans Fat</label>
+                    <input type="number" class="form-control" id="trans-fat-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="sugars-input">Sugars</label>
+                    <input type="number" class="form-control" id="sugars-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="cholesterol-input">Cholesterol</label>
+                    <input type="number" class="form-control" id="cholesterol-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <label for="added-sugars-input">Added Sugars</label>
+                  <div class="form-group form-inline">
+                    <input type="number" class="form-control" id="added-sugars-input" placeholder="0" />
+                    <input type="checkbox" class="form-control ml-2" id="added-sugars-check" />
+                    <label class="ml-2" for="added-sugars-check">All sugars are added</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="sodium-input">Sodium</label>
+                    <input type="number" class="form-control" id="sodium-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="protein-input">Protein</label>
+                    <input type="number" class="form-control" id="protein-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col">
+                  <div class="form-group">
+                    <label for="vitamin-d-input">Vitamin D</label>
+                    <input type="number" class="form-control" id="vitamin-d-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="calcium-input">Calcium</label>
+                    <input type="number" class="form-control" id="calcium-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="iron-input">Iron</label>
+                    <input type="number" class="form-control" id="iron-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="potassium-input">Potassium</label>
+                    <input type="number" class="form-control" id="potassium-input" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <button id="save-food-button" type="button" class="btn btn-primary">Save changes</button>
+            <button id="cancel-food-edit-button" type="button" class="btn btn-secondary">Close</button>
+
+            <div id="ndb-search-area" class="mt-3">
+              <form>
+                <label for="ndb-search-text"><h5>Or autofill from the USDA Food Composition Database:</h5></label>
+                <div class="form-group form-inline">
+                  <input type="text" class="form-control ml-2" id="ndb-search-text" />
+                  <input type="checkbox" class="form-control ml-2" id="ndb-branded-checkbox" />
+                  <label class="ml-2" for="ndb-branded-checkbox">Branded Search</label>
+                  <button id="ndb-search-button" type="button" class="btn btn-primary form-control ml-2">Search</button>
+
+                </div>
+              </form>
+
+              <table>
+                <tbody id="ndb-search-results">
+                  <tr id="state-row">
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-
-      <button id="recipe-save-button" class="btn btn-lg btn-primary" type="button">Save Recipe</button>
-
     </div>
 
-    <div id="recipe-list-container" class="container-fluid">
-      <div class="row">
-        <div class="col-sm-12">
-          <h1>Alchemist</h1>
+
+    <div id="nutrition-info-modal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="nutrition-info-title" class="modal-title"></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div id="nutrition-facts">
+              <div id="label">
+                <div id="title-column">
+                  <div id="title-section" class="border-below">
+                    <strong>Nutrition Facts</strong>
+                  </div>
+                  <div id="servings-section" class="border-below">
+                    <div contenteditable = "true">5 servings</div>
+                    <div>per container</div>
+                    <div><strong>Serving size</strong></div>
+                    <div><strong><span contenteditable="true">2/3 cup</span> (<span id="serving-size">28g</span>)</strong></div>
+                  </div>
+                  <div id="calories-section">
+                    <div>
+                      <strong>Calories <br/> <small>per serving</small></strong>
+                    </div>
+                    <div><strong><span id="calories">90</span></strong></div>
+                  </div>
+                </div>
+
+                <div id="nutrient-columns">
+                  <div class="nutrient-table">
+                    <div class="table-heading table-row border-below-thick">
+                      <div>
+                        <strong><small>Amount/serving</small></strong>
+                      </div>
+                      <div>
+                        <strong><small>% DV</small></strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below">
+                      <div>
+                        <strong>Total Fat</strong> <span id="total-fat">2</span>g
+                      </div>
+                      <div>
+                        <strong><span id="total-fat-dv">3</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below indent">
+                      <div>
+                        Sat. Fat <span id="sat-fat">1</span>g
+                      </div>
+                      <div>
+                        <strong><span id="sat-fat-dv">5</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below indent">
+                      <div>
+                        <em>Trans</em> Fat <span id="trans-fat">0.5</span>g
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below">
+                      <div>
+                        <strong>Cholesterol</strong> <span id="cholesterol">10</span>mg
+                      </div>
+                      <div>
+                        <strong><span id="cholesterol-dv">3</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below-thick">
+                      <div>
+                        <strong>Sodium</strong> <span id="sodium">200</span>mg
+                      </div>
+                      <div>
+                        <strong><span id="sodium-dv">9</span>%</strong>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div class="nutrient-table">
+                    <div class="table-heading table-row border-below-thick">
+                      <div>
+                        <strong><small>Amount/serving</small></strong>
+                      </div>
+                      <div>
+                        <strong><small>% DV</small></strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below">
+                      <div>
+                        <strong>Total Carb.</strong> <span id="total-carb">15</span>g
+                      </div>
+                      <div>
+                        <strong><span id="total-carb-dv">5</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below indent">
+                      <div>
+                        Dietary Fiber <span id="dietary-fiber">0</span>g
+                      </div>
+                      <div>
+                        <strong><span id="dietary-fiber-dv">0</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below indent">
+                      <div>
+                        Total Sugars <span id="total-sugars">14</span>g
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below indent-2">
+                      <div>
+                        Incl. <span id="added-sugars">10</span>g Added Sugars
+                      </div>
+                      <div>
+                        <strong><span id="added-sugars-dv">26</span>%</strong>
+                      </div>
+                    </div>
+
+                    <div class="table-row border-below-thick">
+                      <div>
+                        <strong>Protein</strong> <span id="protein">3</span>g
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <div id="vitamin-info">
+                  <ul id="vitamin-list">
+                    <li>Vitamin D <span id="vitamin-d-dv">0</span>%</li>
+                    <li>Calcium <span id="calcium-dv">6</span>%</li>
+                    <li>Iron <span id="iron-dv">6</span>%</li>
+                    <li>Potassium <span id="potassium-dv">10</span>%</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
-
-      <h2>My Recipes:</h2>
-      <table id="recipe-list">
-
-      </table>
-      <input type="text" id="new-recipe-text" placeholder="New Recipe" maxlength="50" rows="1" cols="50" />
-      <button id="new-recipe-button" class="btn btn-primary">Create Recipe</button>
-      <button id="save-recipes-button" class="btn btn-primary btn-lg">Save Recipes</button>
     </div>
 
-    <!-- All of the Node.js APIs are available in this renderer process. -->
+    <div id="settings-modal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Settings</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="api-key-input">API Key</label>
+                <input id="api-key-input" type="text" placeholder="DEMO_KEY" />
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <footer>
-      <hr />
-      <h4>
-        API Key:
-        <input type="text" id="api-key-text" placeholder="DEMO_KEY" maxlength="50" rows="1" cols="50" />
-        <button id="api-key-update-button" class="btn btn-lg btn-primary" type="button">Update Key</button>
-      </h4>
+
     </footer>
   </body>
 
   <script>
     // You can also require other files to run in this process
-    require('./renderer.js')
+    require('./renderer.js');
   </script>
 </html>

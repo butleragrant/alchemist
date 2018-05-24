@@ -1,460 +1,535 @@
 // This file is required by the index.html file and will
 // be executed in the renderer process for that window.
-// All of the Node.js APIs are available in this process.
-const api = require('./api.js');
-const ds = require('./data-store.js');
-const rm = require('./recipe-model.js');
-const nut = require('./nutrition.js');
-const meas = require('./measurement.js');
+
+
+const alch = require('./alchemist.js');
 const electron = require('electron');
-const url = require('url');
-const path = require('path');
+const $ = require('jquery');
+const bs = require('bootstrap');
+const meas = require('./Measurement.js');
 
-const API_URL = "https://api.nal.usda.gov/ndb/";
-const RECIPE_DATA_FILENAME = "alchemist-recipes.json";
-const CONF_FILENAME = "alchemist-conf.json";
-
-var userSettings;
-var recipeLibrary;
-var editingRecipe; //the recipe currently loaded in editor
-var apiSession;
-var nutritionWindow;
+let control = new alch.Alchemist();
 
 //setup() runs onload, hooks static buttons, loads user data, and sets the
 //initial state
 function setup() {
-  //API key settings:
-  userSettings = ds.loadData(CONF_FILENAME);
-  if(userSettings.apiKey == null) {
-    userSettings.apiKey = "DEMO_KEY";
-  }
-  let apiText = document.getElementById("api-key-text");
-  apiText.value = userSettings.apiKey;
+  populateUnitSelectors(); //add options to the unit selection dropdowns
+  setupSettings();
+  setupMainPage();
+  setupRecipeEditor();
+  setupFoodEditor();
+  setupNutritionInfo();
 
-  document.getElementById("api-key-update-button").addEventListener('click', updateAPIKey);
-  updateAPIKey();
-
-  recipeLibrary = rm.RecipeLibrary(ds.loadData(RECIPE_DATA_FILENAME));
-
-  renderRecipeList();
-  document.getElementById("usda-search-button").addEventListener('click', foodSearch);
-  document.getElementById("usda-search-box").addEventListener('keydown', function(key) {
-    if(key.keyCode === 13) {
-      foodSearch();
-    }
-  });
-
-  document.getElementById("recipe-save-button").addEventListener('click', saveRecipe);
-  document.getElementById("new-recipe-button").addEventListener('click', newRecipe);
-  document.getElementById("new-recipe-text").addEventListener('keydown', function(key) {
-    if(key.keyCode === 13) {
-      newRecipe();
-    }
-  });
-
-  document.getElementById("recipe-search-box").addEventListener('input', recipeSearch);
-  document.getElementById("save-recipes-button").addEventListener('click', saveAllRecipes);
-
-
-  //other button hooks etc.
+  renderMainPage();
 }
 
-function updateAPIKey() {
-  let apiText = document.getElementById("api-key-text");
-  userSettings.apiKey = apiText.value;
-  apiSession = api.ApiSession(API_URL, userSettings.apiKey);
-  ds.saveData(userSettings, CONF_FILENAME, function() {
-    console.log("saved settings");
+//Hook static buttons on the "main page" (recipe and food lists)
+function setupMainPage() {
+  $('#new-recipe-button').click(function() {
+    let newRid = control.newRecipe();
+    editRecipe(newRid, function() {
+      renderMainPage();
+    });
+  });
+
+  $('#new-food-button').click(function() {
+    let newFid = control.newFood();
+    editFood(newFid, function() {
+      renderMainPage();
+    });
+  });
+
+  $('#save-button').click(function() {
+    control.saveRecipeData(function() {
+      //TODO: fill this out
+    });
   });
 }
 
-function saveAllRecipes() {
-  ds.saveData(recipeLibrary.saveData, RECIPE_DATA_FILENAME, function() {
-    console.log("saving complete");
-  });
-}
+//Renders the "main page" (recipe and food lists)
+function renderMainPage() {
+  //Create rows of recipes:
+  let recipes = control.allRecipes();
 
-//Renders the list of saved recipes which can be edited etc.
-function renderRecipeList() {
-  let recipeList = document.getElementById("recipe-list");
-  recipeList.innerHTML = ""; //
-  let recipes = recipeLibrary.recipeList;
-  console.log("rendering recipes: " + JSON.stringify(recipes));
-  for(let i = 0; i < recipes.length; i++) {
-    let currentRecipeName = recipes[i];
+  $('.recipe-row').remove(); //delete rows from a previous rendering
+  $('#recipe-list .empty-table-row').show(); //Show an "no recipes" message
+  Object.keys(recipes).forEach(function(rid) {
+    $('#recipe-list .empty-table-row').hide(); //remove the "no recipes" message
 
-    let currentRow = document.createElement('tr');
-    let nameCell = document.createElement('td');
-    let editCell = document.createElement('td');
-    let nutritionCell = document.createElement('td');
-    let ingredientsCell = document.createElement('td');
-    let deleteCell = document.createElement('td');
-    let editButton = document.createElement('button');
-    let nutritionButton = document.createElement('button');
-    let ingredientsButton = document.createElement('button');
-    let deleteButton = document.createElement('button');
+    let nameCell = $('<td></td>');
+    let factsCell = $('<td></td>');
+    let editCell = $('<td></td>');
+    let deleteCell = $('<td></td>');
 
-    editButton.innerHTML = "Edit";
-    editButton.className += " btn btn-primary";
-    editButton.addEventListener('click', function() {
-      editingRecipe = recipeLibrary.getRecipe(currentRecipeName);
-      renderRecipeEditing();
+    let factsButton = $('<button class="btn btn-primary" type="button">Nutrition Info</button>');
+    factsButton.click(function() {
+      showNutritionInfo(rid);
     });
 
-    nutritionButton.innerHTML = "Nutrition Facts";
-    nutritionButton.className += " btn btn-primary";
-    nutritionButton.addEventListener('click', function() {
-      nut.getNutritionData(currentRecipeName, recipeLibrary, apiSession,
-        function(nutritionData, responseCode) {
-        let hash = JSON.stringify(nutritionData);
-        console.log("nutrient totals: " + JSON.stringify(nutritionData));
-
-        nutritionWindow = new electron.remote.BrowserWindow({width: 800, height: 600});
-
-        nutritionWindow.loadURL(url.format({
-          pathname: path.join(__dirname, 'tabular-nutrition.html'),
-          protocol: 'file:',
-          slashes: true,
-          hash
-        }));
-
+    let editButton = $('<button class="btn btn-primary" type="button">Edit</button>');
+    editButton.click(function() {
+      editRecipe(rid, function() {
+        renderMainPage();
       });
-
     });
 
-    ingredientsButton.innerHTML = "Copy Ingredients to Clipboard";
-    ingredientsButton.className += " btn btn-primary";
-    ingredientsButton.addEventListener('click', function() {
-      let ingredientsList =
-        nut.generateIngredientString(currentRecipeName, recipeLibrary);
-      electron.clipboard.writeText(ingredientsList);
+    let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
+    deleteButton.click(function() {
+      control.deleteRecipe(rid);
+      renderMainPage();
     });
 
-    deleteButton.innerHTML = "Delete";
-    deleteButton.className += " btn btn-primary";
-    deleteButton.addEventListener('click', function() {
-      recipeLibrary.deleteRecipe(currentRecipeName);
-      renderRecipeList();
-    });
+    nameCell.append(recipes[rid]);
+    factsCell.append(factsButton);
+    editCell.append(editButton);
+    deleteCell.append(deleteButton);
 
-    nameCell.innerHTML = currentRecipeName;
-    editCell.appendChild(editButton);
-    nutritionCell.appendChild(nutritionButton);
-    ingredientsCell.appendChild(ingredientsButton);
-    deleteCell.appendChild(deleteButton);
-
-    currentRow.appendChild(nameCell);
-    currentRow.appendChild(editCell);
-    currentRow.appendChild(nutritionCell);
-    currentRow.appendChild(ingredientsCell);
-    currentRow.appendChild(deleteCell);
-
-    recipeList.appendChild(currentRow);
-
-  }
-
-  document.getElementById("edit-recipe-container").style.display = "none";
-  document.getElementById("recipe-list-container").style.display = "block";
-
-}
-
-//Asks the user for a name and creates a recipe with that name
-function newRecipe() {
-  let newRecipeInput = document.getElementById("new-recipe-text");
-  let recipeName = newRecipeInput.value;
-  newRecipeInput.value = "";
-  editingRecipe = recipeLibrary.newRecipe(recipeName);
-  renderRecipeEditing();
-}
-
-//Brings up the recipe editing screen for whatever recipe is currently stored
-//in the editingRecipe global.
-function renderRecipeEditing() {
-  let recipeNameField = document.getElementById("edit-recipe-name");
-  recipeNameField.innerHTML = editingRecipe.name;
-
-  let servingSizeInput = document.getElementById("serving-size-text");
-  let servingSizeUnitSelect = document.getElementById("serving-size-unit");
-
-  servingSizeInput.value = editingRecipe.servingSize.quantity;
-  servingSizeUnitSelect.selectedIndex = editingRecipe.servingSize.unit;
-
-  servingSizeInput.addEventListener('change', function() {
-    editingRecipe.servingSize = meas.Measurement(servingSizeInput.value,
-      servingSizeUnitSelect.selectedIndex);
+    let row = $('<tr class="recipe-row"></tr>');
+    row.append(nameCell);
+    row.append(factsCell);
+    row.append(editCell);
+    row.append(deleteCell);
+    $('#recipe-list').append(row);
   });
 
-  servingSizeUnitSelect.addEventListener('change', function() {
-    editingRecipe.servingSize = meas.Measurement(servingSizeInput.value,
-      servingSizeUnitSelect.selectedIndex);
-  })
-  renderSubFoods();
-  renderSubRecipes();
+  //Create rows for foods:
+  let foods = control.allFoods();
 
-  document.getElementById("edit-recipe-container").style.display = "block";
-  document.getElementById("loading-display").style.display = "none";
-  document.getElementById("recipe-list-container").style.display = "none";
+  $('.food-row').remove(); //Delete rows from previous renderings
+  $('#food-list .empty-table-row').show(); //Show a "no foods" message
+  Object.keys(foods).forEach(function(fid) {
+    $('#food-list .empty-table-row').hide(); //Hide the "no foods" message
+    let nameCell = $('<td></td>');
+    let factsCell = $('<td></td>');
+    let editCell = $('<td></td>');
+    let deleteCell = $('<td></td>');
 
-  if(recipeLibrary.isValid(editingRecipe)) {
-    document.getElementById("recipe-save-button").disabled = false;
-  } else {
-    document.getElementById("recipe-save-button").disabled = true;
-  }
+    let factsButton = $('<button class="btn btn-primary" type="button">Nutrition Info</button>');
+    factsButton.click(function() {
+      //TODO do we want this??????
+    });
+
+    let editButton = $('<button class="btn btn-primary" type="button">Edit</button>');
+    editButton.click(function() {
+      editFood(fid, function() {
+        renderMainPage();
+      });
+    });
+
+    let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
+    deleteButton.click(function() {
+      control.deleteFood(fid);
+      renderMainPage();
+    });
+
+    nameCell.append(foods[fid]);
+    factsCell.append(factsButton);
+    editCell.append(editButton);
+    deleteCell.append(deleteButton);
+
+    let row = $('<tr class="food-row"></tr>');
+    row.append(nameCell);
+    row.append(factsCell);
+    row.append(editCell);
+    row.append(deleteCell);
+    $('#food-list').append(row);
+  });
+
+  $('#edit-recipe-container').hide();
+  $('#edit-food-container').hide();
+  $('#main-page-container').show();
 }
 
-//renders the subfoods list of the recipe editing screen
-function renderSubFoods() {
-  let subFoodsElement = document.getElementById("edit-recipe-subFoods");
-  subFoodsElement.innerHTML = "";
-
-  let subFoods = editingRecipe.subFoods;
-  for(let foodIngredient in subFoods) {
-    if(subFoods.hasOwnProperty(foodIngredient)) {
-      console.log("creating row and delete button for " + foodIngredient);
-      let currentRow = document.createElement("tr");
-      let nameCell = document.createElement("td");
-      let quantityCell = document.createElement("td");
-      let unitCell = document.createElement("td");
-      let sugarsCell = document.createElement("td");
-      let deleteCell = document.createElement("td");
-
-      //Name:
-      let nameText = document.createElement("input");
-      nameText.value = subFoods[foodIngredient].name;
-      nameCell.appendChild(nameText);
-
-      //Quantity text:
-      let quantityText = document.createElement("input");
-      quantityText.setAttribute("type", "number");
-      quantityText.className += " quantity-input";
-      quantityText.value = subFoods[foodIngredient].amount.quantity;
-      quantityCell.appendChild(quantityText);
-
-      //Unit select:
-      let unitSelect = document.createElement("select");
-      let unitOptionG = document.createElement("option");
-      unitOptionG.value = "g";
-      unitOptionG.innerHTML = "g";
-      let unitOptionOz = document.createElement("option");
-      unitOptionOz.value = "oz";
-      unitOptionOz.innerHTML = "oz";
-      unitSelect.appendChild(unitOptionG);
-      unitSelect.appendChild(unitOptionOz);
-      unitSelect.selectedIndex = subFoods[foodIngredient].amount.unit;
-      unitCell.appendChild(unitSelect);
-
-
-      //create the delete button for the row
-      let deleteButton = document.createElement("button");
-      deleteButton.innerHTML = "&times;";
-      deleteButton.className += " close";
-      deleteCell.appendChild(deleteButton);
-
-      let sugarsCheck = document.createElement("input");
-      sugarsCheck.setAttribute("type", "checkbox");
-      sugarsCheck.checked = subFoods[foodIngredient].addedSugars;
-      sugarsCell.appendChild(sugarsCheck);
-
-      currentRow.appendChild(nameCell);
-      currentRow.appendChild(quantityCell);
-      currentRow.appendChild(unitCell);
-      currentRow.appendChild(sugarsCell);
-      currentRow.appendChild(deleteCell);
-      subFoodsElement.appendChild(currentRow);
-
-      nameText.addEventListener("change", function() {
-        editingRecipe.addSubFood(foodIngredient, nameText.value,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex),
-          sugarsCheck.checked);
-      });
-      quantityText.addEventListener("change", function() {
-        editingRecipe.addSubFood(foodIngredient, nameText.value,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex),
-          sugarsCheck.checked);
-      });
-      unitSelect.addEventListener("change", function() {
-        editingRecipe.addSubFood(foodIngredient, nameText.value,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex),
-          sugarsCheck.checked);
-      });
-      sugarsCheck.addEventListener("change", function() {
-        editingRecipe.addSubFood(foodIngredient, nameText.value,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex),
-          sugarsCheck.checked);
-      });
-
-      deleteButton.addEventListener("click", function() {
-        console.log("deleting " + foodIngredient);
-        editingRecipe.deleteSubFood(foodIngredient);
-        renderRecipeEditing();
-      });
-    }
-  }
+function setupRecipeEditor() {
+  //TODO do need/want this?
 }
 
-function renderSubRecipes() {
-  let subRecipesElement = document.getElementById("edit-recipe-subRecipes");
-  subRecipesElement.innerHTML = "";
+//Edit a recipe:
+function editRecipe(rid, doneCallback) {
+  let recipeEditor = control.editRecipe(rid);
+  renderRecipeEditor(recipeEditor, doneCallback);
+}
 
-  let subRecipes = editingRecipe.subRecipes;
-  for(let recipeIngredient in subRecipes) {
-    if(subRecipes.hasOwnProperty(recipeIngredient)) {
-      console.log("creating row and delete button for " + recipeIngredient);
-      let currentRow = document.createElement("tr");
-      let nameCell = document.createElement("td");
-      let quantityCell = document.createElement("td");
-      let unitCell = document.createElement("td");
-      let deleteCell = document.createElement("td");
+//Render the recipe editing screen
+function renderRecipeEditor(recipeEditor, doneCallback) {
+  //Recipe name field:
+  $('#recipe-name-input').val(recipeEditor.getName());
+  $('#recipe-name-input').change(function() {
+    recipeEditor.setName($('#recipe-name-input').val());
+  });
 
-      nameCell.innerHTML = recipeIngredient;
+  //Serving size field:
+  let servingSize = recipeEditor.getServingSize();
+  $('#serving-size-input').val(servingSize.amount);
+  $('#serving-size-unit').val(servingSize.unit);
+  $('#serving-size-input, #serving-size-unit').change(function() {
+    recipeEditor.setServingSize($('#serving-size-input').val(), $('serving-size-unit').val());
+  });
 
-      //recipe quantity:
-      let quantityText = document.createElement("input");
-      quantityText.setAttribute("type", "number");
-      quantityText.className += " quantity-input";
-      quantityText.value = subRecipes[recipeIngredient].quantity;
-      quantityCell.appendChild(quantityText);
 
-      //Unit selector:
-      let unitSelect = document.createElement("select");
-      let unitOptionG = document.createElement("option");
-      unitOptionG.value = "g";
-      unitOptionG.innerHTML = "g";
-      let unitOptionOz = document.createElement("option");
-      unitOptionOz.value = "oz";
-      unitOptionOz.innerHTML = "oz";
-      unitSelect.appendChild(unitOptionG);
-      unitSelect.appendChild(unitOptionOz);
-      unitSelect.selectedIndex = subRecipes[recipeIngredient].unit;
-      unitCell.appendChild(unitSelect);
+  $('.edit-recipe-subRecipe-row').remove();
+  $('#edit-recipe-subRecipes .empty-table-row').show();
+  let subRecipes = recipeEditor.listSubRecipes();
+  Object.keys(subRecipes).forEach(function(subRid) {
+    $('#edit-recipe-subRecipes .empty-table-row').hide();
 
-      //create the delete button for the row
-      let deleteButton = document.createElement("button");
-      deleteButton.innerHTML = "&times;";
-      deleteButton.className += " close";
-      deleteCell.appendChild(deleteButton);
+    let nameCell = $('<td></td>');
+    let amountCell = $('<td></td>');
+    let unitCell = $('<td></td>');
+    let deleteCell = $('<td></td>');
 
-      //Build the row
-      currentRow.appendChild(nameCell);
-      currentRow.appendChild(quantityCell);
-      currentRow.appendChild(unitCell);
-      currentRow.appendChild(deleteCell);
-      subRecipesElement.appendChild(currentRow);
+    nameCell.append(subRecipes[subRid].name);
 
-      //Add event listeners
-      quantityText.addEventListener("change", function() {
-        editingRecipe.addSubRecipe(recipeIngredient,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex));
+    let amountInput = $('<input type="number" class="quantity-input form-control"/>');
+    amountInput.val(subRecipes[subRid].amount);
+    amountCell.append(amountInput);
+
+    let unitSelect = $('<select class="form-control unit-select"/>)');
+    populateUnitSelector(unitSelect);
+    unitSelect.val(subRecipes[subRid].unit);
+    unitCell.append(unitSelect);
+
+    let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
+    deleteCell.append(deleteButton);
+
+    let row = $('<tr class="edit-recipe-subRecipe-row"></tr>');
+    row.append(nameCell);
+    row.append(amountCell);
+    row.append(unitCell);
+    row.append(deleteCell);
+
+    //Elements are created, now hook changes etc.
+    amountInput.change(function() {
+      recipeEditor.addSubRecipe(subRid, amountInput.val(), unitSelect.val());
+    });
+
+    unitSelect.change(function() {
+      recipeEditor.addSubRecipe(subRid, amountInput.val(), unitSelect.val());
+    });
+
+    deleteButton.click(function() {
+      recipeEditor.deleteSubRecipe(subRid);
+      renderRecipeEditor(recipeEditor, doneCallback);
+    });
+
+    //and append the row
+    $('#edit-recipe-subRecipes').append(row);
+  });
+
+  $('.edit-recipe-subFood-row').remove();
+  $('#edit-recipe-subFoods .empty-table-row').show();
+  let subFoods = recipeEditor.listSubFoods();
+  console.log("subFoods in renderer is " + JSON.stringify(subFoods));
+  Object.keys(subFoods).forEach(function(subFid) {
+    $('#edit-recipe-subFoods .empty-table-row').hide();
+
+    let nameCell = $('<td></td>');
+    let amountCell = $('<td></td>');
+    let unitCell = $('<td></td>');
+    let deleteCell = $('<td></td>');
+
+    nameCell.append(subFoods[subFid].name);
+
+    let amountInput = $('<input type="number" id="serving-size-input" class="quantity-input form-control"/>');
+    amountInput.val(subFoods[subFid].amount);
+    amountCell.append(amountInput);
+
+    let unitSelect = $('<select id="serving-size-unit" class="form-control unit-select"/>)');
+    populateUnitSelector(unitSelect);
+    unitSelect.val(subFoods[subFid].unit);
+    unitCell.append(unitSelect);
+
+    let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
+    deleteCell.append(deleteButton);
+
+    let row = $('<tr class="edit-recipe-subRecipe-row"></tr>');
+    row.append(nameCell);
+    row.append(amountCell);
+    row.append(unitCell);
+    row.append(deleteCell);
+
+    //Elements are created, now hook changes etc.
+    amountInput.change(function() {
+      recipeEditor.addSubFood(subFid, amountInput.val(), unitSelect.val());
+    });
+
+    unitSelect.change(function() {
+      recipeEditor.addSubFood(subFid, amountInput.val(), unitSelect.val());
+    });
+
+    deleteButton.click(function() {
+      recipeEditor.deleteSubFood(subFid);
+      renderRecipeEditor(recipeEditor, doneCallback);
+    });
+
+    //and append the row
+    $('#edit-recipe-subFoods').append(row);
+  });
+
+  //Searching recipes
+  $('#recipe-search-text').off('input').on('input', function() {
+    let searchString = $('#recipe-search-text').val();
+    let results = recipeEditor.searchRecipes(searchString);
+    console.log("results are: " + JSON.stringify(results));
+
+    let resultsTable = $('#recipe-search-results')
+
+    $('.recipe-search-row').remove();
+    $('#recipe-search-results .empty-table-row').show();
+    Object.keys(results).forEach(function(resultRid) {
+      $('#recipe-search-results .empty-table-row').hide();
+
+      let row = $('<tr class="recipe-search-row"></tr>');
+
+      let nameCell = $('<td></td>');
+      let addCell = $('<td></td>');
+
+      nameCell.append(results[resultRid]);
+
+      let addButton = $('<button class="btn" type="button">Add</button>');
+      addButton.click(function() {
+        recipeEditor.addSubRecipe(resultRid);
+        renderRecipeEditor(recipeEditor, doneCallback);
       });
-      unitSelect.addEventListener("change", function() {
-        editingRecipe.addSubRecipe(recipeIngredient,
-          meas.Measurement(quantityText.value, unitSelect.selectedIndex));
+
+      addCell.append(addButton);
+
+      row.append(nameCell);
+      row.append(addButton);
+
+      resultsTable.append(row);
+    });
+  });
+
+  //Searching foods:
+  $('#food-search-text').off('input').on('input', function() {
+    let searchString = $('#food-search-text').val();
+    let results = recipeEditor.searchFoods(searchString);
+    console.log("Food search results are: " + JSON.stringify(results));
+    $('.food-search-row').remove();
+    let resultsTable = $('#food-search-results')
+    $('#food-search-results .empty-table-row').show();
+    Object.keys(results).forEach(function(resultFid) {
+      $('#food-search-results .empty-table-row').hide();
+
+      let row = $('<tr class="food-search-row"></tr>');
+
+      let nameCell = $('<td></td>');
+      let addCell = $('<td></td>');
+
+      nameCell.append(results[resultFid]);
+
+      let addButton = $('<button class="btn" type="button">Add</button>');
+      addButton.click(function() {
+        console.log("add button clicked");
+        recipeEditor.addSubFood(resultFid);
+        renderRecipeEditor(recipeEditor, doneCallback);
       });
 
-      deleteButton.addEventListener("click", function() {
-        console.log("deleting " + recipeIngredient);
-        editingRecipe.deleteSubRecipe(recipeIngredient);
-        renderRecipeEditing();
-      })
-    }
-  }
+      addCell.append(addButton);
+
+      row.append(nameCell);
+      row.append(addCell);
+
+      resultsTable.append(row);
+    });
+  });
+
+
+  $('#recipe-save-button').off('click').click(function() {
+    recipeEditor.save();
+    doneCallback();
+  });
+
+  $('#recipe-cancel-button').off('click').click(function() {
+    console.log("cancelling recipe editing");
+    doneCallback();
+  });
+
+  $('#main-page-container').hide();
+  $('#edit-food-container').hide();
+  $('#edit-recipe-container').show();
+
 }
 
-
-//Saved the editing recipe and renders the recipeList
-function saveRecipe() {
-  recipeLibrary.saveRecipe(editingRecipe);
-  renderRecipeList();
+function setupFoodEditor() {
+  //TODO do we need this?
 }
 
-//Function for the recipe search button on the recipe editing screen
-function recipeSearch() {
-  let searchText = document.getElementById("recipe-search-box").value;
-  let searchResults = document.getElementById("recipe-search-results");
-  searchResults.innerHTML = "";
-  let recipes = recipeLibrary.recipeList;
-  for(let i = 0; i < recipes.length; i++) {
-    let recipeName = recipes[i];
-    if(searchText.length > 0 && recipeName.startsWith(searchText)
-        && recipeLibrary.isValidChild(editingRecipe, recipeName)) {
-      let newRow = document.createElement('tr');
-      let nameCell = document.createElement('td');
-      let addCell = document.createElement('td');
-      let addButton = document.createElement('button');
-      addButton.innerHTML = "+";
-      addButton.className += " btn btn-primary";
-
-      nameCell.innerHTML = recipes[i];
-      addButton.addEventListener('click', function() {
-        editingRecipe.addSubRecipe(recipes[i], meas.Measurement(100, meas.GRAMS));
-        renderRecipeEditing();
-      })
-
-      addCell.appendChild(addButton);
-      newRow.appendChild(nameCell);
-      newRow.appendChild(addCell);
-
-      searchResults.appendChild(newRow);
-    }
-
-  }
+//TODO: make sure added sugars is not > than total sugars
+//same with the fats
+function editFood(fid, doneCallback) {
+  let foodEditor = control.editFood(fid);
+  renderFoodEditor(foodEditor, doneCallback);
 }
 
-//Function for searching the NDB for a food from the recipe editing screen
-function foodSearch() {
-  //Returns an html row with the given message
-  function errorRow(message) {
-    let errorRow = document.createElement('tr');
-    let errorCell = document.createElement('td');
-    errorCell.innerHTML = message;
-    errorRow.appendChild(errorCell);
-    return errorRow;
-  }
+function renderFoodEditor(foodEditor, doneCallback) {
+  //The recipe editor updates the editor object throughout the construction process
+  //This is necessary for it but for the food editor, it can just do its updates
+  //when the save button is clicked.
+  $('#food-name-input').val(foodEditor.getName());
 
-  let searchText = document.getElementById("usda-search-box").value;
-  let searchResultsArea = document.getElementById("usda-search-results");
-  let loadingGif = document.getElementById("loading-display")
-  loadingGif.style.display = "block";
-  searchResultsArea.innerHTML = "";
-  apiSession.foodSearch(searchText,
-    function(responseFoods, responseCode) {
-      loadingGif.style.display = "none";
-      //The normal case:
-      if(responseCode == api.SUCCESS) {
-        for(let i = 0; i < responseFoods.length; i++) {
-          let currentFood = responseFoods[i];
-          let currentRow = document.createElement('tr');
-          let nameCell = document.createElement('td');
-          let categoryCell = document.createElement('td');
-          let addCell = document.createElement('td')
-          let addButton = document.createElement('button');
-          addButton.innerHTML = "+";
-          addButton.className += " btn btn-primary";
+  let servingSize = foodEditor.getServingSize();
+  $('#food-serving-size-input').val(servingSize.amount);
+  $('#food-serving-size-unit').val(servingSize.unit);
 
-          nameCell.innerHTML = currentFood.name;
-          categoryCell.innerHTML = currentFood.group;
-          addButton.addEventListener('click', function() {
-            editingRecipe.addSubFood(currentFood.ndbno, currentFood.name,
-              meas.Measurement(100, meas.GRAMS), false);
-            renderRecipeEditing();
+  let nutrients = foodEditor.getNutrients();
+
+  $('#calories-input').val(nutrients["Calories"]);
+  $('#fat-input').val(nutrients["Total Fat"]);
+  $('#saturated-fat-input').val(nutrients["Saturated Fat"]);
+  $('#trans-fat-input').val(nutrients["Trans Fat"]);
+  $('#cholesterol-input').val(nutrients["Cholesterol"]);
+  $('#sodium-input').val(nutrients["Sodium"]);
+  $('#carbohydrate-input').val(nutrients["Total Carbohydrate"]);
+  $('#fiber-input').val(nutrients["Dietary Fiber"]);
+  $('#sugars-input').val(nutrients["Total Sugars"]);
+  $('#added-sugars-input').val(nutrients["Added Sugars"]);
+  $('#protein-input').val(nutrients["Protein"]);
+  $('#calcium-input').val(nutrients["Calcium"]);
+  $('#iron-input').val(nutrients["Iron"]);
+  $('#potassium-input').val(nutrients["Potassium"]);
+  $('#vitamin-d-input').val(nutrients["Vitamin D"]);
+
+  //Searching the NDB:
+  $('#ndb-search-results #state-row').html('<td>Search the USDA DB above</td>');
+  $('#ndb-search-results .result-row').remove();
+  $('#ndb-search-results #state-row').show();
+  $('#ndb-search-button').off('click').click(function() {
+      let branded = $('#ndb-branded-checkbox').prop('checked');
+      let searchString = $('#ndb-search-text').val();
+
+      $('#ndb-search-results #state-row').html('<td>Loading...</td>');
+
+      foodEditor.searchDatabase(searchString, branded, function(results, error) {
+        console.log("Made it to the final callback.");
+        if(error) {
+          console.log("error is: " + error);
+          $('#ndb-search-results #state-row').html('<td>' + error + '</td>');
+        } else {
+          console.log("No error.");
+          $('#ndb-search-results #state-row').hide();
+          $('#ndb-search-results .result-row').remove();
+          Object.keys(results).forEach(function(ndbid) {
+            console.log("Result row for ndbid: " + ndbid);
+            let row = $('<tr class="result-row"></tr>');
+
+            let nameCell = $('<td></td>');
+            nameCell.append(results[ndbid].name);
+
+            let addCell = $('<td></td>');
+            let addButton = $('<button class="btn" type="button">Add</button>');
+            addButton.click(function() {
+              foodEditor.importFood(ndbid, function(error) {
+                renderFoodEditor(foodEditor, doneCallback, error);
+              });
+            });
+            addCell.append(addButton);
+
+            row.append(nameCell);
+            row.append(addCell);
+
+            $('#ndb-search-results').append(row);
           });
-
-          addCell.appendChild(addButton);
-
-          currentRow.appendChild(nameCell);
-          currentRow.appendChild(categoryCell);
-          currentRow.appendChild(addCell);
-          searchResultsArea.appendChild(currentRow);
         }
+      });
+  });
 
-      } else if(responseCode == api.NO_RESULTS) {
-        searchResultsArea.appendChild(errorRow("No results found"));
-      } else if(responseCode == api.INVALID_KEY) {
-        searchResultsArea.appendChild(errorRow("Invalid API key"));
-      } else {
-        searchResultsArea.appendChild(errorRow("URL not found"));
-      }
-    });
+  $('#save-food-button').off('click').click(function() {
+    let newNutrients = {};
+    newNutrients["Calories"] = $('#calories-input').val();
+    newNutrients["Total Fat"] = $('#fat-input').val();
+    newNutrients["Saturated Fat"] = $('#saturated-fat-input').val();
+    newNutrients["Trans Fat"] = $('#trans-fat-input').val();
+    newNutrients["Cholesterol"] = $('#cholesterol-input').val();
+    newNutrients["Sodium"] = $('#sodium-input').val();
+    newNutrients["Total Carbohydrate"] = $('#carbohydrate-input').val();
+    newNutrients["Dietary Fiber"] = $('#fiber-input').val();
+    newNutrients["Total Sugars"] = $('#sugars-input').val();
+    newNutrients["Added Sugars"] = $('#added-sugars-input').val();
+    newNutrients["Protein"] = $('#protein-input').val();
+    newNutrients["Calcium"] = $('#calcium-input').val();
+    newNutrients["Iron"] = $('#iron-input').val();
+    newNutrients["Potassium"] = $('#potassium-input').val();
+    newNutrients["Vitamin D"] = $('#vitamin-d-input').val();
+    foodEditor.setNutrients(newNutrients);
+
+    foodEditor.setName($('#food-name-input').val());
+
+    foodEditor.setServingSize($('#food-serving-size-input').val(),
+        $('#food-serving-size-unit').val());
+
+    foodEditor.save();
+    doneCallback();
+  });
+
+  $('#edit-recipe-container').hide();
+  $('#main-page-container').hide();
+  $('#edit-food-container').show();
 }
+
+//TODO: this function
+function setupSettings() {
+
+}
+
+//TODO this function
+function setupNutritionInfo() {
+
+}
+
+//TODO this func
+function showNutritionInfo(rid) {
+  let nutritionInfo = control.getNutrition(rid);
+  //unpack
+  let nutrients = nutritionInfo.nutrients;
+  let dailyValues = nutritionInfo.dailyValues;
+
+  $('#nutrition-info-title').html(control.getRecipeName(rid));
+
+  $('#serving-size').html(nutritionInfo.servingSize.amountInUnit(0) + "g");
+
+  $("#calories").html(nutrients["Calories"]);
+  $("#total-fat").html(nutrients["Total Fat"]);
+  $("#sat-fat").html(nutrients["Saturated Fat"]);
+  $("#trans-fat").html(nutrients["Trans Fat"]);
+  $("#cholesterol").html(nutrients["Cholesterol"]);
+  $("#sodium").html(nutrients["Sodium"]);
+  $("#total-carb").html(nutrients["Total Carbohydrate"]);
+  $("#dietary-fiber").html(nutrients["Dietary Fiber"]);
+  $("#total-sugars").html(nutrients["Total Sugars"]);
+  $("#added-sugars").html(nutrients["Added Sugars"]);
+  $("#protein").html(nutrients["Protein"]);
+
+  $("#total-fat-dv").html(dailyValues["Total Fat"]);
+  $("#sat-fat-dv").html(dailyValues["Saturated Fat"]);
+  $("#cholesterol-dv").html(dailyValues["Cholesterol"]);
+  $("#sodium-dv").html(dailyValues["Sodium"]);
+  $("#total-carb-dv").html(dailyValues["Total Carbohydrate"]);
+  $("#dietary-fiber-dv").html(dailyValues["Dietary Fiber"]);
+  $("#added-sugars-dv").html(dailyValues["Added Sugars"]);
+  $("#vitamin-d-dv").html(dailyValues["Vitamin D"]);
+  $("#calcium-dv").html(dailyValues["Calcium"]);
+  $("#iron-dv").html(dailyValues["Iron"]);
+  $("#potassium-dv").html(dailyValues["Potassium"]);
+
+  $('#nutrition-info-modal').modal('show');
+}
+
+
+function populateUnitSelector(selector) {
+  for(let i = 0; i < meas.UNITS_TABLE.length; i++) {
+    selector.append('<option value="' + i + '" >' + meas.UNITS_TABLE[i].abbrev + '</option>');
+  }
+}
+
+function populateUnitSelectors() {
+  let unitSelectors = $('.unit-select');
+  for(let i = 0; i < meas.UNITS_TABLE.length; i++) {
+    unitSelectors.append('<option value="' + i + '" >' + meas.UNITS_TABLE[i].abbrev + '</option>');
+  }
+
+}
+
 
 setup();

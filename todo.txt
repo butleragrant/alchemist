@@ -1,12 +1,6 @@
 TODO:
 
-Ingredient List button!
-Error handling:
-  Cyclical recipes!!
-  Field checking, input sanitation etc.
-Jquery in renderer.js ???
-Lots of UI work to do
-Testing framework
-
-
-experiment with different object creation patterns?
+TESTING
+SETTINGS WINDOW FOR API KEY?
+LABEL PRINTING TO PDF
+CLEAN-UP

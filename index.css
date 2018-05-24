@@ -1,5 +1,18 @@
-.quantity-input {
-  width: 6em;
+
+.unit-select {
+  width: 4.5em;
+}
+
+
+#top-bar-menus {
+  text-align: right;
+}
+#serving-size-input {
+  display: inline;
+}
+
+#serving-size-unit {
+  display: inline;
 }
 
 td {
