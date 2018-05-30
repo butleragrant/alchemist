@@ -266,6 +266,9 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
     $('#edit-recipe-subFoods').append(row);
   });
 
+  $('.recipe-search-row').remove();
+  $('#recipe-search-results .empty-table-row').show();
+  $('#recipe-search-text').val("");
   //Searching recipes
   $('#recipe-search-text').off('input').on('input', function() {
     let searchString = $('#recipe-search-text').val();
@@ -301,6 +304,9 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
     });
   });
 
+  $('.food-search-row').remove();
+  $('#food-search-results .empty-table-row').show();
+  $('#food-search-text').val("");
   //Searching foods:
   $('#food-search-text').off('input').on('input', function() {
     let searchString = $('#food-search-text').val();
@@ -475,12 +481,21 @@ function setupSettings() {
 
 //TODO this function
 function setupNutritionInfo() {
+  $("#print-nutrition-button").click(function() {
+    let nutritionHTML = "<link rel=\"stylesheet\" href=\"tabular-nutrition.css\"/>" + $("#nutrition-print-area").html();
 
+    let window = new electron.remote.BrowserWindow({});
+    window.loadURL("data:text/html," + nutritionHTML, {
+      baseURLForDataURL: `file://${__dirname}/`
+    });
+    window.show();
+  });
 }
 
 //TODO this func
 function showNutritionInfo(rid) {
   let nutritionInfo = control.getNutrition(rid);
+  let ingredientString = control.ingredientString(rid);
   //unpack
   let nutrients = nutritionInfo.nutrients;
   let dailyValues = nutritionInfo.dailyValues;
@@ -513,6 +528,7 @@ function showNutritionInfo(rid) {
   $("#iron-dv").html(dailyValues["Iron"]);
   $("#potassium-dv").html(dailyValues["Potassium"]);
 
+  $('#ingredient-string').html("Ingredients: " + ingredientString);
   $('#nutrition-info-modal').modal('show');
 }
 

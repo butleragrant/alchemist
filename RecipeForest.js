@@ -58,11 +58,11 @@ function RecipeForest(saveString) {
 
   function getInvalidChildren(parentRid) {
     let invalidChildren = new Set();
-    invalidChildren.add(parentRid);
+    invalidChildren.add(parseInt(parentRid));
     Object.keys(recipeList).forEach(function(rid) {
-      if(!invalidChildren.has(rid) && hasInvalidChild(rid, invalidChildren)) {
+      if(!invalidChildren.has(parseInt(rid)) && hasInvalidChild(rid, invalidChildren)) {
         console.log("adding rid " + rid + " to invalid children");
-        invalidChildren.add(rid);
+        invalidChildren.add(parseInt(rid));
       }
     });
 
@@ -72,7 +72,7 @@ function RecipeForest(saveString) {
       for(let subRid in recipe.subRecipes) {
         if(recipe.subRecipes.hasOwnProperty(subRid)) {
           console.log("investigating subRid: " + subRid);
-          if(invalidChildren.has(subRid)) {
+          if(invalidChildren.has(parseInt(subRid))) {
             console.log("subRid " + subRid + " is an invalid child, returning true");
             return true;
           } else {
@@ -140,7 +140,6 @@ function RecipeForest(saveString) {
   },
 
   this.searchRecipes = function(searchString, parent) {
-    console.log("parent is: " + parent);
     let results = {};
     let noReturn;
     if(parent == null) {
@@ -150,15 +149,14 @@ function RecipeForest(saveString) {
     }
 
     console.log("no return is: " + JSON.stringify(Array.from(noReturn)));
-
-    for(let rid in recipeList) {
-      if(recipeList.hasOwnProperty(rid) && !noReturn.has(rid)) {
-        let name = recipeList[rid].name;
+    Object.keys(recipeList).forEach(function(validChildRid) {
+      if(!noReturn.has(parseInt(validChildRid))) {
+        let name = recipeList[validChildRid].name;
         if(name.toUpperCase().startsWith(searchString.toUpperCase())) {
-          results[rid] = name;
+          results[validChildRid] = name;
         }
       }
-    }
+    });
 
     return results;
 
@@ -208,6 +206,53 @@ function RecipeForest(saveString) {
   this.allFoods = function() {
     return this.searchFoods("");
   }
+
+  this.ingredientString = function(rid) {
+    let recipe = recipeList[rid];
+    let ingredients = "";
+
+    let sortedSubRecipes = Object.keys(recipe.subRecipes);
+    sortedSubRecipes.sort(function(rid1, rid2) {
+      return recipe.subRecipes[rid1].amountInUnit(0) -
+                recipe.subRecipes[rid2].amountInUnit(0);
+    });
+
+    let sortedSubFoods = Object.keys(recipe.subFoods);
+    sortedSubFoods.sort(function(fid1, fid2) {
+      return recipe.subFoods[fid1].amountInUnit(0) -
+                recipe.subFoods[fid2].amountInUnit(0);
+    });
+
+    console.log("subRecipes is: " + JSON.stringify(recipe.subRecipes));
+    console.log("subFoods is: " + JSON.stringify(recipe.subFoods));
+    console.log("sortedSubFoods is: " + JSON.stringify(sortedSubFoods));
+    while(sortedSubRecipes.length > 0 || sortedSubFoods.length > 0) {
+      console.log("sortedSubFoods length is: " + sortedSubFoods.length);
+      let recipeAmount = -1;
+      let foodAmount = -1;
+      if(sortedSubRecipes.length > 0) {
+        recipeAmount = recipe.subRecipes[sortedSubRecipes[sortedSubRecipes.length - 1]].amountInUnit(0);
+      }
+
+      if(sortedSubFoods.length > 0) {
+        foodAmount = recipe.subFoods[sortedSubFoods[sortedSubFoods.length - 1]].amountInUnit(0);
+      }
+
+      if(recipeAmount > foodAmount) {
+        let rid = sortedSubRecipes.pop();
+        let name = recipeList[rid].name;
+        ingredients += name + "(" + this.ingredientString(rid) + "), ";
+      } else {
+        let fid = sortedSubFoods.pop();
+        let name = foodList[fid].name;
+        ingredients += name + ", ";
+      }
+
+    }
+    return ingredients.slice(0, -2);
+
+  }
+
 
   this.calcNutrition = function(rid) {
     if(recipeList.hasOwnProperty(rid)) {

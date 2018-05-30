@@ -109,6 +109,10 @@ function Alchemist() {
     };
   }
 
+  this.ingredientString = function(rid) {
+    return recipes.ingredientString(rid);
+  }
+
   this.getSettings = function() {
     return settings;
   }
