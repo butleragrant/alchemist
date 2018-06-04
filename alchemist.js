@@ -16,6 +16,9 @@ function Alchemist() {
   let recipes = new recFor.RecipeForest(recipeStorage.readFile('alchemist-recipes.json'));
 
   let apiSearcher = new api.API(api.DEFAULT_API_DOMAIN, settings.getSetting("apiKey"));
+  settings.hookSettingChange("apiKey", function(newValue) {
+    apiSearcher = new api.API(api.DEFAULT_API_DOMAIN, newValue);
+  });
 
   this.allRecipes = function() {
     let results = {};
@@ -114,7 +117,17 @@ function Alchemist() {
   }
 
   this.getSettings = function() {
-    return settings;
+    let settingList = {};
+    Object.keys(set.SETTINGS_DESC).forEach(function(setting) {
+      settingList[setting] = settings.getSetting(setting);
+    });
+    return settingList;
+  }
+
+  this.setSetting = function(setting, newValue) {
+    console.log("changing setting to: " + newValue);
+    settings.setSetting(setting, newValue);
+    settingsStorage.writeFile('alchemist-settings.json', settings.saveString(), function() {});
   }
 
 }

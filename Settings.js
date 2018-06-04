@@ -2,7 +2,6 @@ const path = require('path');
 const electron = require('electron');
 
 const SETTINGS_DESC = {
-
   "recipePath": {
     "default": electron.remote.app.getPath('userData'),
     "isValid": function(settingVal) {
@@ -23,42 +22,60 @@ const SETTINGS_DESC = {
   }
 }
 
+//TODO this is a mess:
 function Settings(dataString) {
   let settings = {};
-  if(dataString == null) {
-    for(let setting in SETTINGS_DESC) {
-      settings[setting] = SETTINGS_DESC[setting].default;
+  Object.keys(SETTINGS_DESC).forEach(function(setting) {
+    settings[setting] = {
+      value: SETTINGS_DESC[setting].default,
+      hooks: []
     }
-  } else {
+  });
+
+  if(dataString != null) {
     try {
       let savedSettings = JSON.parse(dataString);
-      for(setting in SETTINGS_DESC) {
-        if(SETTINGS_DESC.hasOwnProperty(setting)) {
-          if(savedSettings.hasOwnProperty(setting) && SETTINGS_DESC[setting].isValid(savedSettings[setting])) {
-            settings[setting] = savedSettings[setting];
-          } else {
-            settings[setting] = SETTINGS_DESC[setting].default;
+      Object.keys(SETTINGS_DESC).forEach(function(setting) {
+        if(savedSettings.hasOwnProperty(setting) && SETTINGS_DESC[setting].isValid(savedSettings[setting])) {
+          settings[setting] = {
+            value: savedSettings[setting],
+            hooks: []
           }
         }
-      }
+      });
     } catch(error) {
       console.log("Error parsing settings, using defaults");
       this();
     }
   }
 
+  this.saveString = function() {
+    let newSaveData = {};
+    Object.keys(settings).forEach(function(setting) {
+      newSaveData[setting] = settings[setting].value;
+    });
+    return JSON.stringify(newSaveData);
+  }
+
   this.getSetting = function(setting) {
     if(settings.hasOwnProperty(setting)) {
-      return settings[setting];
+      return settings[setting].value;
     } else {
       return null;
     }
   }
 
-  this.setSetting = function(setting, value) {
-    if(settings.hasOwnProperty(setting) && SETTINGS_DESC[setting].isValid(value)) {
-      settings[setting] = value;
+  this.setSetting = function(setting, newValue) {
+    if(settings.hasOwnProperty(setting) && SETTINGS_DESC[setting].isValid(newValue)) {
+      settings[setting].value = newValue;
+      settings[setting].hooks.forEach(function(changeFunction) {
+        changeFunction(newValue);
+      });
     }
+  }
+
+  this.hookSettingChange = function(setting, changeFunction) {
+    settings[setting].hooks.push(changeFunction);
   }
 
 }

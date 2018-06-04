@@ -476,10 +476,13 @@ function renderFoodEditor(foodEditor, doneCallback) {
 
 //TODO: this function
 function setupSettings() {
-
+  let settings = control.getSettings();
+  $('#api-key-input').val(settings["apiKey"]);
+  $('#api-key-input').change(function() {
+    control.setSetting("apiKey", $('#api-key-input').val());
+  });
 }
 
-//TODO this function
 function setupNutritionInfo() {
   $("#print-nutrition-button").click(function() {
     let nutritionHTML = "<link rel=\"stylesheet\" href=\"tabular-nutrition.css\"/>" + $("#nutrition-print-area").html();
@@ -492,7 +495,7 @@ function setupNutritionInfo() {
   });
 }
 
-//TODO this func
+
 function showNutritionInfo(rid) {
   let nutritionInfo = control.getNutrition(rid);
   let ingredientString = control.ingredientString(rid);
