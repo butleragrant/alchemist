@@ -10,6 +10,17 @@ Planned features for Alchemist include:
 
 Alchemist currently needs work in these areas (and quite possibly more):
 * UX/UI design
-* Input sanitation/control and error handling (Don't use a recipe as an ingredient for itself!)
-* Testing
-* Ingredient list generation
+* Input sanitation/control and error handling 
+* Testing, lots of testing
+
+## To run alchemist:
+You'll need [npm](https://npmjs.com) installed. From the command line after cloning the repository:
+
+```bash
+# cd into the folder:
+cd alchemist
+# Install dependencies:
+npm install
+# And finally run:
+npm start
+```
