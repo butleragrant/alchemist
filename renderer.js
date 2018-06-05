@@ -148,14 +148,8 @@ function renderMainPage() {
   Object.keys(foods).forEach(function(fid) {
     $('#food-list .empty-table-row').hide(); //Hide the "no foods" message
     let nameCell = $('<td></td>');
-    let factsCell = $('<td></td>');
     let editCell = $('<td></td>');
     let deleteCell = $('<td></td>');
-
-    let factsButton = $('<button class="btn btn-primary" type="button">Nutrition Info</button>');
-    factsButton.click(function() {
-      //TODO do we want this??????
-    });
 
     let editButton = $('<button class="btn btn-primary" type="button">Edit</button>');
     editButton.click(function() {
@@ -195,13 +189,11 @@ function renderMainPage() {
     });
 
     nameCell.append(foods[fid]);
-    factsCell.append(factsButton);
     editCell.append(editButton);
     deleteCell.append(deleteButton);
 
     let row = $('<tr class="food-row"></tr>');
     row.append(nameCell);
-    row.append(factsCell);
     row.append(editCell);
     row.append(deleteCell);
     $('#food-list').append(row);
