@@ -32,7 +32,7 @@ function FoodEditor(fid, forest, apiRequester) {
     if(amount <= 0) {
       amount = 1;
     }
-    
+
     servingSize = new meas.Measurement(amount, unit);
   }
 
@@ -59,7 +59,7 @@ function FoodEditor(fid, forest, apiRequester) {
     }
 
     if(nutrients["Saturated Fat"] + nutrients["Trans Fat"] > nutrients["Total Fat"]) {
-      nutrients["Total Fat"] = nutrients["Satured Fat"] + nutrients["Trans Fat"];
+      nutrients["Total Fat"] = parseFloat(nutrients["Saturated Fat"]) + parseFloat(nutrients["Trans Fat"]);
     }
 
     console.log("After updates nutrients is: " + JSON.stringify(nutrients));

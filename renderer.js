@@ -28,6 +28,18 @@ function setupMainPage() {
   $('#new-recipe-button').click(function() {
     let newRid = control.newRecipe();
     editRecipe(newRid, function() {
+      $('#save-status-saved').hide();
+      $('#save-status-error').hide();
+      $('#save-status-saving').show();
+      control.saveRecipeData(function(error) {
+        $('#save-status-saving').hide();
+        if(error) {
+          $('#save-status-error').html(error);
+          $('#save-status-error').show();
+        } else {
+          $('#save-status-saved').show();
+        }
+      });
       renderMainPage();
     });
   });
@@ -35,15 +47,25 @@ function setupMainPage() {
   $('#new-food-button').click(function() {
     let newFid = control.newFood();
     editFood(newFid, function() {
+      $('#save-status-saved').hide();
+      $('#save-status-error').hide();
+      $('#save-status-saving').show();
+      control.saveRecipeData(function(error) {
+        $('#save-status-saving').hide();
+        if(error) {
+          $('#save-status-error').html(error);
+          $('#save-status-error').show();
+        } else {
+          $('#save-status-saved').show();
+        }
+      });
       renderMainPage();
     });
   });
 
-  $('#save-button').click(function() {
-    control.saveRecipeData(function() {
-      //TODO: fill this out
-    });
-  });
+  $('#save-status-saved').show();
+  $('#save-status-saving').hide();
+  $('#save-status-error').hide();
 }
 
 //Renders the "main page" (recipe and food lists)
@@ -69,6 +91,18 @@ function renderMainPage() {
     let editButton = $('<button class="btn btn-primary" type="button">Edit</button>');
     editButton.click(function() {
       editRecipe(rid, function() {
+        $('#save-status-saved').hide();
+        $('#save-status-error').hide();
+        $('#save-status-saving').show();
+        control.saveRecipeData(function(error) {
+          $('#save-status-saving').hide();
+          if(error) {
+            $('#save-status-error').html(error);
+            $('#save-status-error').show();
+          } else {
+            $('#save-status-saved').show();
+          }
+        });
         renderMainPage();
       });
     });
@@ -76,6 +110,20 @@ function renderMainPage() {
     let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
     deleteButton.click(function() {
       control.deleteRecipe(rid);
+      $('#save-status-saved').hide();
+      $('#save-status-error').hide();
+      $('#save-status-saving').show();
+      console.log("saving...");
+      control.saveRecipeData(function(error) {
+        console.log("done saving");
+        $('#save-status-saving').hide();
+        if(error) {
+          $('#save-status-error').html(error);
+          $('#save-status-error').show();
+        } else {
+          $('#save-status-saved').show();
+        }
+      });
       renderMainPage();
     });
 
@@ -112,6 +160,18 @@ function renderMainPage() {
     let editButton = $('<button class="btn btn-primary" type="button">Edit</button>');
     editButton.click(function() {
       editFood(fid, function() {
+        $('#save-status-saved').hide();
+        $('#save-status-error').hide();
+        $('#save-status-saving').show();
+        control.saveRecipeData(function(error) {
+          $('#save-status-saving').hide();
+          if(error) {
+            $('#save-status-error').html(error);
+            $('#save-status-error').show();
+          } else {
+            $('#save-status-saved').show();
+          }
+        });
         renderMainPage();
       });
     });
@@ -119,6 +179,18 @@ function renderMainPage() {
     let deleteButton = $('<button class="btn btn-primary" type="button">Delete</button>');
     deleteButton.click(function() {
       control.deleteFood(fid);
+      $('#save-status-saved').hide();
+      $('#save-status-error').hide();
+      $('#save-status-saving').show();
+      control.saveRecipeData(function(error) {
+        $('#save-status-saving').hide();
+        if(error) {
+          $('#save-status-error').html(error);
+          $('#save-status-error').show();
+        } else {
+          $('#save-status-saved').show();
+        }
+      });
       renderMainPage();
     });
 
@@ -359,7 +431,18 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
 }
 
 function setupFoodEditor() {
-  //TODO do we need this?
+  $('#added-sugars-check').change(function() {
+    $('#added-sugars-input').prop('disabled', this.checked);
+    if(this.checked) {
+      $('#added-sugars-input').val($('#sugars-input').val());
+      $('#sugars-input').change(function() {
+        $('#added-sugars-input').val($('#sugars-input').val());
+      });
+    } else {
+      $('#sugars-input').off('change');
+    }
+
+  });
 }
 
 //TODO: make sure added sugars is not > than total sugars
@@ -396,6 +479,14 @@ function renderFoodEditor(foodEditor, doneCallback) {
   $('#iron-input').val(nutrients["Iron"]);
   $('#potassium-input').val(nutrients["Potassium"]);
   $('#vitamin-d-input').val(nutrients["Vitamin D"]);
+
+  if(nutrients["Total Sugars"] == nutrients["Added Sugars"]) {
+    $('#added-sugars-check').prop('checked', true);
+    $('#added-sugars-check').change();
+  } else {
+    $('#added-sugars-check').prop('checked', false);
+    $('#added-sugars-check').change();
+  }
 
   //Searching the NDB:
   $('#ndb-search-results #state-row').html('<td>Search the USDA DB above</td>');

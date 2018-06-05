@@ -8,8 +8,12 @@ const fdEdit = require('./FoodEditor.js');
 const api = require('./API.js');
 const nut = require('./Nutrition.js');
 
+/*
+ * The Alchemist object, once constructed, serves as a controller, providing
+ * methods to control and access the model.
+ */
 function Alchemist() {
-  let settingsStorage = new stor.Storage(); //Use default electron path for now
+  let settingsStorage = new stor.Storage(); //Use default electron path for now, maybe command line argument in future?
   let settings = new set.Settings(settingsStorage.readFile('alchemist-settings.json'));
 
   let recipeStorage = new stor.Storage(settings["recipePath"]);
