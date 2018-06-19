@@ -1,18 +1,24 @@
 const meas = require('./Measurement.js');
 const nutrition = require('./Nutrition.js');
 
-const EMPTY_FOOD = new Food();
-
+/*
+ * Food constructs an object representing a single food type and its nutrition
+ * information. A Food has fields: "name" of type string, "servingSize" of type
+ * Measurement, and "nutrients" which is an object with one key/value pair per
+ * tracked nutrient. foodData should have these exact properties. The purpose
+ * of this constructor is to ensure foodData represents a Food with valid
+ * values for each property, and to utilize Object.freeze() to make Foods
+ * immutable.
+ */
 function Food(foodData) {
   if(foodData == null) {
     this.name = "A Food";
-    this.servingSize = new meas.Measurement(100, 0);
+    this.servingSize = new meas.Measurement();
     this.nutrients = {};
-    for(nid in nutrition.NUTRIENT_LIST) {
-      if(nutrition.NUTRIENT_LIST.hasOwnProperty(nid)) {
-        this.nutrients[nid] = 0;
-      }
-    }
+    Object.keys(nutrition.NUTRIENT_LIST).forEach((nid) => {
+      this.nutrients[nid] = 0;
+    });
+
   } else {
     try {
       this.name = foodData.name;
@@ -20,16 +26,14 @@ function Food(foodData) {
           foodData.servingSize.unit);
 
       let nutrientQuantities = {};
-      for(nid in nutrition.NUTRIENT_LIST) {
-        if(nutrition.NUTRIENT_LIST.hasOwnProperty(nid)) {
-          let nutrientQuant = foodData.nutrients[nid];
-          if(nutrientQuant == null || isNaN(nutrientQuant)) {
-            nutrientQuantities[nid] = 0;
-          } else {
-            nutrientQuantities[nid] = nutrientQuant;
-          }
+      Object.keys(nutrition.NUTRIENT_LIST).forEach((nid) => {
+        let nutrientQuant = foodData.nutrients[nid];
+        if(nutrientQuant == null || isNaN(nutrientQuant)) {
+          nutrientQuantities[nid] = 0;
+        } else {
+          nutrientQuantities[nid] = nutrientQuant;
         }
-      }
+      });
 
       //Do a couple checks:
       //UI shouldn't allow these two checks to fail but if they do, make sure
@@ -46,8 +50,9 @@ function Food(foodData) {
 
       this.nutrients = nutrientQuantities;
     } catch(error) {
-      console.log("Error constructing food, resorting to a zeroed one");
-      this();
+      //If we get down here, foodData is missing some properties
+      console.log("Error constructing food, returning a default one");
+      Food();
     }
   }
 
@@ -59,6 +64,5 @@ function Food(foodData) {
 }
 
 module.exports = {
-  Food,
-  EMPTY_FOOD
+  Food
 }

@@ -1,33 +1,41 @@
 const nut = require('./Nutrition.js');
 const meas = require('./Measurement.js');
-const api = require('./API.js');
+const api = require('./APIRequester.js');
 const fd = require('./Food.js');
 
-function FoodEditor(fid, forest, apiRequester) {
-  let food = forest.getFood(fid);
+/*
+ * FoodEditor provides an API for editing foods on the fly. FoodEditor is
+ * constructed with the fid of the edited food, the RecipeBook the food belongs
+ * to, and an APIRequester for sending api requests to a food composition database.
+ */
+function FoodEditor(fid, recipeBook, apiRequester) {
+  let food = recipeBook.getFood(fid);
   let name = food.name;
   let servingSize = food.servingSize;
   let nutrients = {};
-  for(let nid in food.nutrients) {
-    if(food.nutrients.hasOwnProperty(nid)) {
-      nutrients[nid] = food.nutrients[nid];
-    }
-  }
+  //We need our own copy of nutrients to edit
+  Object.keys(food.nutrients).forEach((nid) => {
+    nutrients[nid] = food.nutrients[nid];
+  });
 
+  //Returns name of the food
   this.getName = function() {
     return name;
   }
 
+  //Sets the name of the food
   this.setName = function(newName) {
     if(typeof newName === typeof "") {
       name = newName;
     }
   }
 
+  //Returns the servingSize for the food
   this.getServingSize = function() {
     return servingSize;
   }
 
+  //Sets the servingSize for the food
   this.setServingSize = function(amount, unit) {
     if(amount <= 0) {
       amount = 1;
@@ -36,47 +44,50 @@ function FoodEditor(fid, forest, apiRequester) {
     servingSize = new meas.Measurement(amount, unit);
   }
 
+  //Returns an object with keys representing nutrient Ids and values representing
+  //nutrient quantities
   this.getNutrients = function() {
     let retNutrients = {};
-    for(nid in nutrients) {
-      if(nutrients.hasOwnProperty(nid)) {
-        retNutrients[nid] = nutrients[nid];
-      }
-    }
+    Object.keys(nutrients).forEach((nid) => {
+      retNutrients[nid] = nutrients[nid];
+    });
 
     return retNutrients;
   }
 
+  //Sets the nutrients for this food
   this.setNutrients = function(newNutrients) {
-    for(nid in nut.NUTRIENT_LIST) {
-      if(nut.NUTRIENT_LIST.hasOwnProperty(nid) && newNutrients.hasOwnProperty(nid)) {
-        nutrients[nid] = parseFloat(newNutrients[nid]); //working now
+    Object.keys(nut.NUTRIENT_LIST).forEach((nid) => {
+      if(newNutrients.hasOwnProperty(nid)) {
+        nutrients[nid] = parseFloat(newNutrients[nid]);
       }
-    }
+    });
 
+    //Sanity checking:
     if(nutrients["Added Sugars"] > nutrients["Total Sugars"]) {
       nutrients["Total Sugars"] = nutrients["Added Sugars"];
     }
 
     if(nutrients["Saturated Fat"] + nutrients["Trans Fat"] > nutrients["Total Fat"]) {
+      //these parseFloats shouldn't be necessary any more? TODO try removing them
       nutrients["Total Fat"] = parseFloat(nutrients["Saturated Fat"]) + parseFloat(nutrients["Trans Fat"]);
     }
 
-    console.log("After updates nutrients is: " + JSON.stringify(nutrients));
   }
 
+  //Save saves the editing food to the RecipeBook
   this.save = function() {
-    console.log("Saving, nutrients are: " + JSON.stringify(nutrients));
     let newFoodData = {
       name: name,
       servingSize: servingSize,
       nutrients: nutrients
     }
 
-    forest.saveFood(fid, new fd.Food(newFoodData));
+    recipeBook.saveFood(fid, new fd.Food(newFoodData));
 
   }
 
+  //Returns error messages for each api response code
   function errorMessages(responseCode) {
     if(responseCode === api.API_CODES.INVALID_KEY) {
       return "Invalid API key, try re-entering it in the settings menu.";
@@ -89,8 +100,14 @@ function FoodEditor(fid, forest, apiRequester) {
     }
   }
 
-  this.searchDatabase = function(searchString, branded, callback) {
-    apiRequester.foodSearch(searchString, function(results, responseCode) {
+  /*
+   * Searches the food database with the provided API for a food matching
+   * searchString. searchDatabse calls callback on an object mapping ndb Ids
+   * to their name and group and an errorMessage. errorMessage is left null
+   * if the search was successful.
+   */
+  this.searchDatabase = function(searchString, callback) {
+    apiRequester.foodSearch(searchString, (results, responseCode) => {
       let foods = {};
       for(let i = 0; i < results.length; i++) {
         foods[results[i].ndbno] = {
@@ -98,25 +115,26 @@ function FoodEditor(fid, forest, apiRequester) {
           group: results[i].group
         }
       }
-      console.log("API CODES is: " + JSON.stringify(api.API_CODES));
       if(responseCode === api.API_CODES.SUCCESS) {
         callback(foods);
       } else {
         callback(foods, errorMessages(responseCode));
       }
-    }, branded);
+    });
   }
 
+  /*
+   * importFood sets the nutrient data of the foodEditor to the database's
+   * nutrition data for the given ndbno, then calls callback with an error message
+   * if there was an error, or nothing if the request was successful
+   */
   this.importFood = function(ndbno, callback) {
-    let editor = this;
-    apiRequester.nutritionInfo(ndbno, function(results, responseCode) {
-      console.log("we here");
-      console.log("responseCode is: " + responseCode);
-      console.log("results is: " + JSON.stringify(results));
+    apiRequester.nutritionInfo(ndbno, (results, responseCode) => {
       if(responseCode === api.API_CODES.SUCCESS) {
-        Object.keys(results).forEach(function(nutrient) {
+        Object.keys(results).forEach((nutrient) => {
           nutrients[nutrient] = results[nutrient];
         });
+        servingSize = new meas.Measurement(100, 0);
         callback();
 
       } else {

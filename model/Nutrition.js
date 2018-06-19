@@ -1,3 +1,4 @@
+
 const NUTRIENT_LIST = {
   "Added Sugars": {
     dv: 50,
@@ -76,6 +77,9 @@ const NUTRIENT_LIST = {
   }
 };
 
+/*
+ * Rounds nutrients following the rules specified by the FDA for nutrition labeling
+ */
 function roundNutrients(nutrients) {
   let roundedNutrients = {};
   //Calories:
@@ -196,7 +200,7 @@ function roundNutrients(nutrients) {
 
 function dailyValues(nutrients) {
   let dailyValues = {};
-  Object.keys(nutrients).forEach(function(nutrient) {
+  Object.keys(nutrients).forEach((nutrient) => {
     if(NUTRIENT_LIST[nutrient].dv > 0) {
       dailyValues[nutrient] = Math.round((nutrients[nutrient] * 100.0) / NUTRIENT_LIST[nutrient].dv);
     } else {

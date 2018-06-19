@@ -2,10 +2,11 @@ const meas = require('./Measurement.js');
 
 const EMPTY_RECIPE = new Recipe();
 
+
 function Recipe(recipeData) {
   if(recipeData == null) {
     this.name = "A Recipe";
-    this.servingSize = new meas.Measurement(100, 0);
+    this.servingSize = new meas.Measurement();
     this.subRecipes = {};
     this.subFoods = {};
   } else {
@@ -17,19 +18,15 @@ function Recipe(recipeData) {
       let subRecipes = {};
       let subFoods = {};
 
-      for(rid in recipeData.subRecipes) {
-        if(recipeData.subRecipes.hasOwnProperty(rid)) {
-          let subRecipe = recipeData.subRecipes[rid];
-          subRecipes[rid] = new meas.Measurement(subRecipe.amount, subRecipe.unit);
-        }
-      }
+      Object.keys(recipeData.subRecipes).forEach((rid) => {
+        let subRecipe = recipeData.subRecipes[rid];
+        subRecipes[rid] = new meas.Measurement(subRecipe.amount, subRecipe.unit);
+      });
 
-      for(fid in recipeData.subFoods) {
-        if(recipeData.subFoods.hasOwnProperty(fid)) {
-          let subFood = recipeData.subFoods[fid];
-          subFoods[fid] = new meas.Measurement(subFood.amount, subFood.unit);
-        }
-      }
+      Object.keys(recipeData.subFoods).forEach((fid) => {
+        let subFood = recipeData.subFoods[fid];
+        subFoods[fid] = new meas.Measurement(subFood.amount, subFood.unit);
+      });
 
       this.subRecipes = subRecipes;
       this.subFoods = subFoods;
@@ -37,7 +34,7 @@ function Recipe(recipeData) {
       //if there's some error just call self with no parameter, leading to the
       //default case above
       console.log("Error constructing recipe, returning an empty one");
-      this();
+      Recipe();
     }
   }
 
@@ -50,6 +47,5 @@ function Recipe(recipeData) {
 }
 
 module.exports = {
-  Recipe,
-  EMPTY_RECIPE
+  Recipe
 }

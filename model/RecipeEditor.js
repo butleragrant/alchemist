@@ -1,15 +1,20 @@
 const rec = require('./Recipe.js');
-const recForest = require('./RecipeForest.js');
 const meas = require('./Measurement.js');
 
-function RecipeEditor(rid, forest) {
-  let recipe = forest.getRecipe(rid);
+/*
+ * RecipeEditor offers an API for the editing of Recipe objects. It is constructed
+ * with an rid and a reference to the RecipeBook to which the recipe belongs
+ */
+function RecipeEditor(rid, book) {
+  let recipe = book.getRecipe(rid);
   let name = recipe.name;
   let servingSize = recipe.servingSize;
   let subRecipes = {};
+
   Object.keys(recipe.subRecipes).forEach(function(rid) {
     subRecipes[rid] = recipe.subRecipes[rid];
   });
+
   let subFoods = {};
   Object.keys(recipe.subFoods).forEach(function(fid) {
     subFoods[fid] = recipe.subFoods[fid];
@@ -39,40 +44,38 @@ function RecipeEditor(rid, forest) {
   this.listSubRecipes = function() {
     //should be rid -> name, amount, unit
     let subRecipeList = {};
-    for(let subRid in subRecipes) {
-      if(subRecipes.hasOwnProperty(subRid)) {
-        let subRecipe = forest.getRecipe(subRid);
-        subRecipeList[subRid] = {
-          name: subRecipe.name,
-          amount: subRecipes[subRid].amount,
-          unit: subRecipes[subRid].unit
-        }
+
+    Object.keys(subRecipes).forEach((subRid) => {
+      let subRecipe = book.getRecipe(subRid);
+      subRecipeList[subRid] = {
+        name: subRecipe.name,
+        amount: subRecipes[subRid].amount,
+        unit: subRecipes[subRid].unit
       }
-    }
+    });
+
     return subRecipeList;
   }
 
   this.listSubFoods = function() {
     //should be fid -> name, amount, unit
     let subFoodList = {};
-    for(let subFid in subFoods) {
-      if(subFoods.hasOwnProperty(subFid)) {
-        let subFood = forest.getFood(subFid);
-        subFoodList[subFid] = {
-          name: subFood.name,
-          amount: subFoods[subFid].amount,
-          unit: subFoods[subFid].unit
-        }
+    Object.keys(subFoods).forEach((subFid) => {
+      let subFood = book.getFood(subFid);
+      subFoodList[subFid] = {
+        name: subFood.name,
+        amount: subFoods[subFid].amount,
+        unit: subFoods[subFid].unit
       }
-    }
+    });
 
     return subFoodList;
   }
 
   this.addSubRecipe = function(rid, amount, unit) {
-    if(forest.getRecipe(rid) != null) {
+    if(book.getRecipe(rid) != null) {
       if(amount == null || unit == null) {
-        subRecipes[rid] = meas.DEFAULT_MEASURE;
+        subRecipes[rid] = new meas.Measurement();
       } else {
         subRecipes[rid] = new meas.Measurement(amount, unit);
       }
@@ -80,12 +83,9 @@ function RecipeEditor(rid, forest) {
   }
 
   this.addSubFood = function(fid, amount, unit) {
-    if(forest.getFood(fid) != null) {
-      console.log("food exists, continuing");
+    if(book.getFood(fid) != null) {
       if(amount == null || unit == null) {
-        console.log("adding food with default measure");
-        subFoods[fid] = meas.DEFAULT_MEASURE;
-        console.log("subFoods is now: " + JSON.stringify(subFoods));
+        subFoods[fid] = new meas.Measurement();
       } else {
         subFoods[fid] = new meas.Measurement(amount, unit);
       }
@@ -105,12 +105,11 @@ function RecipeEditor(rid, forest) {
   }
 
   this.searchRecipes = function(searchString) {
-    console.log("searching recipes for: " + searchString);
-    return forest.searchRecipes(searchString, rid);
+    return book.searchRecipes(searchString, rid);
   }
 
   this.searchFoods = function(searchString) {
-    return forest.searchFoods(searchString);
+    return book.searchFoods(searchString);
   }
 
   this.save = function() {
@@ -121,7 +120,7 @@ function RecipeEditor(rid, forest) {
       subFoods: subFoods
     };
 
-    forest.saveRecipe(rid, new rec.Recipe(newRecipeData));
+    book.saveRecipe(rid, new rec.Recipe(newRecipeData));
   }
 }
 

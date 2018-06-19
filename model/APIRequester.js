@@ -16,9 +16,19 @@ const NUTRIENT_STRING = "nutrients=301&nutrients=601&nutrients=291&nutrients=208
   "&nutrients=303&nutrients=306&nutrients=203&nutrients=606&nutrients=307" +
   "&nutrients=205&nutrients=204&nutrients=269&nutrients=605&nutrients=328";
 
-function API(domain, key) {
-
-  this.foodSearch = function(searchString, callback, branded, numResults) {
+/*
+ * API constructs an object with two function properties, one to search for foods
+ * from the given domain and one to get nutrient quantities for a food.
+ * API is constructed from an API key (default is DEMO_KEY) and a domain (default
+ * is https://api.nal.usda.gov/ndb/ , the USDA's food composition database)
+ * Specification for USDA's ndb can be found at: https://ndb.nal.usda.gov/ndb/doc/index
+ */
+function APIRequester(key, domain) {
+  if(domain == null) {
+    domain = DEFAULT_API_DOMAIN;
+  }
+  //Function to search for foods:
+  this.foodSearch = function(searchString, callback, numResults) {
     if(searchString == null) {
       searchString = "";
     }
@@ -36,11 +46,13 @@ function API(domain, key) {
       if(this.readyState == 4) {
         if(this.status == 200) {
           let response = JSON.parse(this.responseText);
+          //This is specific to USDA's NDB response format:
           if(response.hasOwnProperty("error")) {
             callback([], API_CODES.INVALID_KEY);
           } else if(response.hasOwnProperty("errors")) {
             callback([], API_CODES.NO_RESULTS);
           } else {
+            //Translate into a reasonable format:
             let responseFoods = [];
             for(let i = response.list.start; i < response.list.end; i++) {
               responseFoods[i - response.list.start] = {
@@ -63,7 +75,6 @@ function API(domain, key) {
 
     searchRequest.open("GET", requestText, true);
     searchRequest.send();
-
   }
 
   this.nutritionInfo = function(ndbid, callback) {
@@ -72,35 +83,31 @@ function API(domain, key) {
       if(this.readyState == 4) {
         if(this.status == 200) {
           let response = JSON.parse(this.responseText);
+          ////This is also specific to USDA's NDB response format:
           if(response.hasOwnProperty("error")) {
             callback({}, API_CODES.INVALID_KEY);
           } else if(response.hasOwnProperty("errors")) {
             callback({}, API_CODES.NO_RESULTS);
           } else {
-            console.log("nutrition response was: " + JSON.stringify(response));
             let food = response.report.foods[response.report.start];
             if(food.ndbno != ndbid) {
               callback({}, API_CODES.NO_RESULTS);
             } else {
 
               let responseNutrients = {};
-              for(let i in food.nutrients) {
-                if(food.nutrients.hasOwnProperty(i)) {
-                  responseNutrients[food.nutrients[i].nutrient_id] = food.nutrients[i].gm;
-                }
-              }
+              Object.keys(food.nutrients).forEach((i) => {
+                responseNutrients[food.nutrients[i].nutrient_id] = food.nutrients[i].gm
+              });
 
               let nutrients = {};
-              for(let nid in nutrition.NUTRIENT_LIST) {
-                if(nutrition.NUTRIENT_LIST.hasOwnProperty(nid)) {
-                  let currentId = nutrition.NUTRIENT_LIST[nid].ndbId;
-                  if(responseNutrients.hasOwnProperty(currentId) && !isNaN(responseNutrients[currentId])) {
-                    nutrients[nid] = responseNutrients[currentId];
-                  } else {
-                    nutrients[nid] = 0;
-                  }
+              Object.keys(nutrition.NUTRIENT_LIST).forEach((nid) => {
+                let ndbId = nutrition.NUTRIENT_LIST[nid].ndbId;
+                if(responseNutrients.hasOwnProperty(ndbId) && !isNaN(responseNutrients[ndbId])) {
+                  nutrients[nid] = responseNutrients[ndbId];
+                } else {
+                  nutrients[nid] = 0;
                 }
-              }
+              });
 
               callback(nutrients, API_CODES.SUCCESS);
             }
@@ -122,6 +129,5 @@ function API(domain, key) {
 
 module.exports = {
   API_CODES,
-  API,
-  DEFAULT_API_DOMAIN
+  APIRequester
 }

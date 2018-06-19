@@ -1,27 +1,27 @@
 const stor = require('./Storage.js');
 const set = require('./Settings.js');
-const recFor = require('./RecipeForest.js');
+const recBook = require('./RecipeBook.js');
 const rec = require('./Recipe.js');
 const recEdit = require('./RecipeEditor.js');
 const fd = require('./Food.js');
 const fdEdit = require('./FoodEditor.js');
-const api = require('./API.js');
+const api = require('./APIRequester.js');
 const nut = require('./Nutrition.js');
 
 /*
  * The Alchemist object, once constructed, serves as a controller, providing
- * methods to control and access the model.
+ * methods to control and access the recipe model.
  */
 function Alchemist() {
   let settingsStorage = new stor.Storage(); //Use default electron path for now, maybe command line argument in future?
   let settings = new set.Settings(settingsStorage.readFile('alchemist-settings.json'));
 
   let recipeStorage = new stor.Storage(settings["recipePath"]);
-  let recipes = new recFor.RecipeForest(recipeStorage.readFile('alchemist-recipes.json'));
+  let recipes = new recBook.RecipeBook(recipeStorage.readFile('alchemist-recipes.json'));
 
-  let apiSearcher = new api.API(api.DEFAULT_API_DOMAIN, settings.getSetting("apiKey"));
-  settings.hookSettingChange("apiKey", function(newValue) {
-    apiSearcher = new api.API(api.DEFAULT_API_DOMAIN, newValue);
+  let apiSearcher = new api.APIRequester(settings.getSetting("apiKey"));
+  settings.hookSettingChange("apiKey", (newValue) => {
+    apiSearcher = new api.APIRequester(newValue);
   });
 
   this.allRecipes = function() {
@@ -78,9 +78,7 @@ function Alchemist() {
   }
 
   this.deleteRecipe = function(rid) {
-    console.log("called delete recipe");
     if(recipes.isRecipe(rid)) {
-      console.log("deleting recipe");
       recipes.deleteRecipe(rid);
     }
   }
@@ -103,11 +101,8 @@ function Alchemist() {
   this.getNutrition = function(rid) {
     let recipe = recipes.getRecipe(rid);
     let nutrients = recipes.calcNutrition(rid);
-    console.log("nutrients are: " + JSON.stringify(nutrients));
     let roundedNutrients = nut.roundNutrients(nutrients);
-    console.log("roundedNutrients are: " + JSON.stringify(roundedNutrients));
     let dailyValues = nut.dailyValues(nutrients);
-    console.log("Daily Values are: " + JSON.stringify(dailyValues));
 
     return {
       nutrients: roundedNutrients,
@@ -129,7 +124,6 @@ function Alchemist() {
   }
 
   this.setSetting = function(setting, newValue) {
-    console.log("changing setting to: " + newValue);
     settings.setSetting(setting, newValue);
     settingsStorage.writeFile('alchemist-settings.json', settings.saveString(), function() {});
   }

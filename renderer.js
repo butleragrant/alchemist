@@ -1,12 +1,12 @@
 // This file is required by the index.html file and will
 // be executed in the renderer process for that window.
 
-
-const alch = require('./alchemist.js');
+const alch = require('./model/Alchemist.js');
 const electron = require('electron');
 const $ = require('jquery');
 const bs = require('bootstrap');
-const meas = require('./Measurement.js');
+const meas = require('./model/Measurement.js');
+const fs = require('fs');
 
 let control = new alch.Alchemist();
 
@@ -283,7 +283,6 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
   $('.edit-recipe-subFood-row').remove();
   $('#edit-recipe-subFoods .empty-table-row').show();
   let subFoods = recipeEditor.listSubFoods();
-  console.log("subFoods in renderer is " + JSON.stringify(subFoods));
   Object.keys(subFoods).forEach(function(subFid) {
     $('#edit-recipe-subFoods .empty-table-row').hide();
 
@@ -337,7 +336,6 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
   $('#recipe-search-text').off('input').on('input', function() {
     let searchString = $('#recipe-search-text').val();
     let results = recipeEditor.searchRecipes(searchString);
-    console.log("results are: " + JSON.stringify(results));
 
     let resultsTable = $('#recipe-search-results')
 
@@ -375,7 +373,6 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
   $('#food-search-text').off('input').on('input', function() {
     let searchString = $('#food-search-text').val();
     let results = recipeEditor.searchFoods(searchString);
-    console.log("Food search results are: " + JSON.stringify(results));
     $('.food-search-row').remove();
     let resultsTable = $('#food-search-results')
     $('#food-search-results .empty-table-row').show();
@@ -391,7 +388,6 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
 
       let addButton = $('<button class="btn" type="button">Add</button>');
       addButton.click(function() {
-        console.log("add button clicked");
         recipeEditor.addSubFood(resultFid);
         renderRecipeEditor(recipeEditor, doneCallback);
       });
@@ -412,7 +408,6 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
   });
 
   $('#recipe-cancel-button').off('click').click(function() {
-    console.log("cancelling recipe editing");
     doneCallback();
   });
 
@@ -485,22 +480,18 @@ function renderFoodEditor(foodEditor, doneCallback) {
   $('#ndb-search-results .result-row').remove();
   $('#ndb-search-results #state-row').show();
   $('#ndb-search-button').off('click').click(function() {
-      let branded = $('#ndb-branded-checkbox').prop('checked');
       let searchString = $('#ndb-search-text').val();
 
       $('#ndb-search-results #state-row').html('<td>Loading...</td>');
 
-      foodEditor.searchDatabase(searchString, branded, function(results, error) {
-        console.log("Made it to the final callback.");
+      foodEditor.searchDatabase(searchString, (results, error) => {
+        $('#ndb-search-results .result-row').remove();
         if(error) {
-          console.log("error is: " + error);
           $('#ndb-search-results #state-row').html('<td>' + error + '</td>');
+          $('#ndb-search-results #state-row').show();
         } else {
-          console.log("No error.");
           $('#ndb-search-results #state-row').hide();
-          $('#ndb-search-results .result-row').remove();
           Object.keys(results).forEach(function(ndbid) {
-            console.log("Result row for ndbid: " + ndbid);
             let row = $('<tr class="result-row"></tr>');
 
             let nameCell = $('<td></td>');
@@ -557,7 +548,6 @@ function renderFoodEditor(foodEditor, doneCallback) {
   $('#edit-food-container').show();
 }
 
-//TODO: this function
 function setupSettings() {
   let settings = control.getSettings();
   $('#api-key-input').val(settings["apiKey"]);
@@ -570,11 +560,36 @@ function setupNutritionInfo() {
   $("#print-nutrition-button").click(function() {
     let nutritionHTML = "<link rel=\"stylesheet\" href=\"tabular-nutrition.css\"/>" + $("#nutrition-print-area").html();
 
-    let window = new electron.remote.BrowserWindow({});
-    window.loadURL("data:text/html," + nutritionHTML, {
-      baseURLForDataURL: `file://${__dirname}/`
+    let window = new electron.remote.BrowserWindow({show: false});
+
+    electron.remote.dialog.showSaveDialog(electron.remote.getCurrentWindow(), {defaultPath: "nutrition.pdf"}, function(path) {
+      if(path) {
+        window.once('ready-to-show', function() {
+          window.webContents.printToPDF({landscape: true, pageSize: "Legal"}, (error, data) => {
+            if(error) {
+              throw error;
+            }
+
+            fs.writeFile(path, data, (error) => {
+              if(error) {
+                throw error;
+              }
+            });
+          });
+        });
+      }
+
+
+      window.loadURL("data:text/html," + nutritionHTML, {
+        baseURLForDataURL: `file://${__dirname}/`
+      });
+
     });
-    window.show();
+
+
+
+
+
   });
 }
 

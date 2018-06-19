@@ -6,7 +6,9 @@ const CONF_FILE = "alch-conf.json";
 const RECIPE_FILE = "alch-recipe-data.json";
 const DEFAULT_DATA_DIR = electron.remote.app.getPath('userData');
 
-//TODO: Add options to change this path
+/*
+ * Storage just represents a location to save things and saves files there.
+ */
 function Storage(dataDir) {
   if(dataDir == null) {
     dataDir = DEFAULT_DATA_DIR;
@@ -23,7 +25,6 @@ function Storage(dataDir) {
 
   this.writeFile = function(fileName, dataString, callback) {
     let filePath = path.join(dataDir, fileName);
-    console.log("Writing: " + dataString);
     fs.writeFile(filePath, dataString, "utf8", callback);
   };
 }

@@ -35,7 +35,7 @@ function Measurement(amount, unit) {
   }
 
   if(isNaN(amount) || amount < 0) {
-    amount = 0;
+    amount = 1;
   }
 
   this.amount = amount;
@@ -62,10 +62,7 @@ Measurement.prototype.amountInUnit = function(targetUnit) {
               UNITS_TABLE[targetUnit].conversionFactor;
 }
 
-const DEFAULT_MEASURE = new Measurement();
-
 module.exports = {
   Measurement,
-  UNITS_TABLE,
-  DEFAULT_MEASURE
+  UNITS_TABLE
 }

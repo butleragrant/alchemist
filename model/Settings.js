@@ -22,7 +22,12 @@ const SETTINGS_DESC = {
   }
 }
 
-//TODO this is a mess:
+/*
+ * Settings is constructed with a string representing a JSON object. The string
+ * should have been previously generated with the saveString function. Settings
+ * offers functions to get/set settings as well as save functions that will be
+ * called when a specified setting changes.
+ */
 function Settings(dataString) {
   let settings = {};
   Object.keys(SETTINGS_DESC).forEach(function(setting) {
@@ -45,7 +50,7 @@ function Settings(dataString) {
       });
     } catch(error) {
       console.log("Error parsing settings, using defaults");
-      this();
+      Settings();
     }
   }
 
