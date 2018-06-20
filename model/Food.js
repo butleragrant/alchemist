@@ -44,7 +44,7 @@ function Food(foodData) {
       }
 
       if(nutrientQuantities["Saturated Fat"] + nutrientQuantities["Trans Fat"] > nutrientQuantities["Total Fat"]) {
-        nutrientQuantities["Total Fat"] = nutrientQuantities["Satured Fat"] + nutrientQuantities["Trans Fat"];
+        nutrientQuantities["Total Fat"] = nutrientQuantities["Saturated Fat"] + nutrientQuantities["Trans Fat"];
       }
 
 
