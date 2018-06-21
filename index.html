@@ -5,15 +5,9 @@
     <title>Alchemist</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous"/>
     <link rel="stylesheet" href="index.css" />
-    <link rel="stylesheet" href="tabular-nutrition.css"/>
   </head>
 
   <body>
-    <div id="top-bar">
-      <div id="top-bar-menus">
-        <button id="settings-button" class="btn btn-lg mt-2 mr-2 ml-2" data-toggle="modal" data-target="#settings-modal">Settings</button>
-      </div>
-    </div>
 
     <div class="container mt-5" id="edit-recipe-container">
       <div class="row">
@@ -31,8 +25,8 @@
               <div class="col">
                 <label for="serving-size-input">Serving Size</label>
                 <div class="form-group form-inline">
-                  <input type="number" id="serving-size-input" class="quantity-input form-control"/>
-                  <select id="serving-size-unit" class="form-control unit-select ml-2">
+                  <input type="number" id="recipe-serving-size-input" class="quantity-input form-control"/>
+                  <select id="recipe-serving-size-unit" class="form-control unit-select ml-2">
                   </select>
                 </div>
               </div>
@@ -112,6 +106,7 @@
     </div>
 
     <div id="main-page-container" class="container mt-5">
+
       <div class="row">
         <div class="col-sm-6">
           <h2>My Recipes:</h2>
@@ -142,6 +137,7 @@
           <!--<button id="save-button" class="btn btn-primary">Save Food and Recipe Data</button> -->
         </div>
       </div>
+      <button id="settings-button" class="btn btn-lg mt-2 mr-2 ml-2" data-toggle="modal" data-target="#settings-modal">Settings</button>
     </div>
 
     <div class="container mt-5" id="edit-food-container">
@@ -150,14 +146,37 @@
           <div id="food-editor-area">
             <h3>Edit a food:</h3>
             <form>
-              <div class="form-group">
-                <label for="food-name-input">Food Name</label>
-                <input type="text" class="form-control" id="food-name-input" placeholder="Food name" />
+              <div class="row">
+
+                <div class="col">
+                  <div class="form-group">
+                    <label for="food-name-input">Food Name</label>
+                    <input type="text" class="form-control" id="food-name-input" placeholder="Food name" />
+                  </div>
+                </div>
+
+                <div class="col">
+                  <label for="food-cost-dollar-input">Food Cost:</label>
+                  <div class="form-group form-inline">
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">$</span>
+                      </div>
+                      <input type="number" class="form-control" id="food-cost-dollar-input" placeholder="1" />
+
+                      <label for="food-cost-dollar-input" class="ml-1 mr-1">for</label>
+
+                      <input type="number" class="form-control" id="food-cost-amount-input" placeholder="100" />
+                      <select id="food-cost-unit" class="form-control unit-select ml-2">
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="row">
                 <div class="col">
-                  <label for="food-serving-size-input">Serving Size</label>
+                  <label for="food-serving-size-input">Food quantity:</label>
                   <div class="form-group form-inline">
                     <input type="number" class="form-control" id="food-serving-size-input" placeholder="100" />
                     <select id="food-serving-size-unit" class="form-control unit-select ml-2">
@@ -394,150 +413,115 @@
             </button>
           </div>
           <div class="modal-body">
-            <div id="nutrition-print-area">
-              <div id="nutrition-facts">
-                <div id="label">
-                  <div id="title-column">
-                    <div id="title-section" class="border-below">
-                      <strong>Nutrition Facts</strong>
-                    </div>
-                    <div id="servings-section" class="border-below">
-                      <div contenteditable = "true">5 servings</div>
-                      <div>per container</div>
-                      <div><strong>Serving size</strong></div>
-                      <div><strong><span contenteditable="true">2/3 cup</span> (<span id="serving-size">28g</span>)</strong></div>
-                    </div>
-                    <div id="calories-section">
-                      <div>
-                        <strong>Calories <br/> <small>per serving</small></strong>
-                      </div>
-                      <div><strong><span id="calories">90</span></strong></div>
-                    </div>
-                  </div>
+            <p>In <span id="nutrition-serving-size-amount"></span><span id="nutrition-serving-size-unit"></span> of this food there is:</p>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Nutrient</th>
+                  <th>Amount</th>
+                  <th>Unit</th>
+                  <th>%DV</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Calories</td>
+                  <td id="calories"></td>
+                  <td>kcal</td>
+                  <td id="calories-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Total Fat</td>
+                  <td id="total-fat"></td>
+                  <td>g</td>
+                  <td id="total-fat-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Saturated Fat</td>
+                  <td id="sat-fat"></td>
+                  <td>g</td>
+                  <td id="sat-fat-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Trans. Fat</td>
+                  <td id="trans-fat"></td>
+                  <td>g</td>
+                  <td id="trans-fat-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Cholesterol</td>
+                  <td id="cholesterol"></td>
+                  <td>mg</td>
+                  <td id="cholesterol-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Sodium</td>
+                  <td id="sodium"></td>
+                  <td>mg</td>
+                  <td id="sodium-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Total Carbohydrate</td>
+                  <td id="total-carb"></td>
+                  <td>g</td>
+                  <td id="total-carb-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Dietary Fiber</td>
+                  <td id="dietary-fiber"></td>
+                  <td>g</td>
+                  <td id="dietary-fiber-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Total Sugars</td>
+                  <td id="total-sugars"></td>
+                  <td>g</td>
+                  <td id="total-sugars-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Added Sugars</td>
+                  <td id="added-sugars"></td>
+                  <td>g</td>
+                  <td id="added-sugars-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Protein</td>
+                  <td id="protein"></td>
+                  <td>g</td>
+                  <td id="protein-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Vitamin D</td>
+                  <td id="vitamin-d"></td>
+                  <td>micrograms</td>
+                  <td id="vitamin-d-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Calcium</td>
+                  <td id="calcium"></td>
+                  <td>mg</td>
+                  <td id="calcium-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Iron</td>
+                  <td id="iron"></td>
+                  <td>mg</td>
+                  <td id="iron-dv">-</td>
+                </tr>
+                <tr>
+                  <td>Potassium</td>
+                  <td id="potassium"></td>
+                  <td>mg</td>
+                  <td id="potassium-dv">-</td>
+                </tr>
+              </tbody>
+            </table>
 
-                  <div id="nutrient-columns">
-                    <div class="nutrient-table">
-                      <div class="table-heading table-row border-below-thick">
-                        <div>
-                          <strong><small>Amount/serving</small></strong>
-                        </div>
-                        <div>
-                          <strong><small>% DV</small></strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below">
-                        <div>
-                          <strong>Total Fat</strong> <span id="total-fat">2</span>g
-                        </div>
-                        <div>
-                          <strong><span id="total-fat-dv">3</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below indent">
-                        <div>
-                          Sat. Fat <span id="sat-fat">1</span>g
-                        </div>
-                        <div>
-                          <strong><span id="sat-fat-dv">5</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below indent">
-                        <div>
-                          <em>Trans</em> Fat <span id="trans-fat">0.5</span>g
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below">
-                        <div>
-                          <strong>Cholesterol</strong> <span id="cholesterol">10</span>mg
-                        </div>
-                        <div>
-                          <strong><span id="cholesterol-dv">3</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below-thick">
-                        <div>
-                          <strong>Sodium</strong> <span id="sodium">200</span>mg
-                        </div>
-                        <div>
-                          <strong><span id="sodium-dv">9</span>%</strong>
-                        </div>
-                      </div>
-
-                    </div>
-
-                    <div class="nutrient-table">
-                      <div class="table-heading table-row border-below-thick">
-                        <div>
-                          <strong><small>Amount/serving</small></strong>
-                        </div>
-                        <div>
-                          <strong><small>% DV</small></strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below">
-                        <div>
-                          <strong>Total Carb.</strong> <span id="total-carb">15</span>g
-                        </div>
-                        <div>
-                          <strong><span id="total-carb-dv">5</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below indent">
-                        <div>
-                          Dietary Fiber <span id="dietary-fiber">0</span>g
-                        </div>
-                        <div>
-                          <strong><span id="dietary-fiber-dv">0</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below indent">
-                        <div>
-                          Total Sugars <span id="total-sugars">14</span>g
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below indent-2">
-                        <div>
-                          Incl. <span id="added-sugars">10</span>g Added Sugars
-                        </div>
-                        <div>
-                          <strong><span id="added-sugars-dv">26</span>%</strong>
-                        </div>
-                      </div>
-
-                      <div class="table-row border-below-thick">
-                        <div>
-                          <strong>Protein</strong> <span id="protein">3</span>g
-                        </div>
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                  <div id="vitamin-info">
-                    <ul id="vitamin-list">
-                      <li>Vitamin D <span id="vitamin-d-dv">0</span>%</li>
-                      <li>Calcium <span id="calcium-dv">6</span>%</li>
-                      <li>Iron <span id="iron-dv">6</span>%</li>
-                      <li>Potassium <span id="potassium-dv">10</span>%</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button id="print-nutrition-button" type="button" class="btn btn-primary">Print to PDF</button>
-
-            <p id="ingredient-string"></p>
+            <p><strong>Ingredients:</strong> <span id="ingredient-string"></span></p>
+            <form class="form-inline">
+              <label for="nutrition-food-cost-unit">This food costs $<span class="mr-1" id="nutrition-food-cost-amount">10</span>per</label>
+              <select id="nutrition-food-cost-unit" class="form-control unit-select ml-2"></select>
+            </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

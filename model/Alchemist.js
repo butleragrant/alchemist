@@ -32,26 +32,22 @@ function Alchemist() {
         results[rid] = allRecipes[rid].name;
       }
     }
-    console.log("alchemists all recipes: " + JSON.stringify(results));
     return results;
   }
 
   this.allFoods = function() {
     let results = {};
     let allFoods = recipes.allFoods();
-    console.log("All foods model: " + JSON.stringify(allFoods));
     for(let fid in allFoods) {
       if(allFoods.hasOwnProperty(fid)) {
         results[fid] = allFoods[fid];
       }
     }
-    console.log("All foods: " + JSON.stringify(results));
     return results;
   }
 
   this.newRecipe = function() {
     let newRid = recipes.newRecipe();
-    console.log("created new recipe: " + newRid);
     return newRid;
   }
 
@@ -98,7 +94,7 @@ function Alchemist() {
     return recipe.name;
   }
 
-  this.getNutrition = function(rid) {
+  this.getRecipeInfo = function(rid) {
     let recipe = recipes.getRecipe(rid);
     let nutrients = recipes.calcNutrition(rid);
     let roundedNutrients = nut.roundNutrients(nutrients);
@@ -107,8 +103,12 @@ function Alchemist() {
     return {
       nutrients: roundedNutrients,
       dailyValues: dailyValues,
-      servingSize: recipe.servingSize
+      servingSize: recipe.servingSize,
     };
+  }
+
+  this.getFoodCost = function(rid, amount) {
+    return recipes.calcCost(rid, amount);
   }
 
   this.ingredientString = function(rid) {

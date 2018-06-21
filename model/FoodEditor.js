@@ -11,6 +11,7 @@ const fd = require('./Food.js');
 function FoodEditor(fid, recipeBook, apiRequester) {
   let food = recipeBook.getFood(fid);
   let name = food.name;
+  let cost = food.cost;
   let servingSize = food.servingSize;
   let nutrients = {};
   //We need our own copy of nutrients to edit
@@ -42,6 +43,16 @@ function FoodEditor(fid, recipeBook, apiRequester) {
     }
 
     servingSize = new meas.Measurement(amount, unit);
+  }
+
+  //Returns the cost of the food, first value is the cost in $, second value
+  //is a measurement representing the denominator of the cost ratio
+  this.getFoodCost = function() {
+    return cost;
+  }
+
+  this.setFoodCost = function(foodCost) {
+    cost = foodCost;
   }
 
   //Returns an object with keys representing nutrient Ids and values representing
@@ -80,6 +91,7 @@ function FoodEditor(fid, recipeBook, apiRequester) {
     let newFoodData = {
       name: name,
       servingSize: servingSize,
+      cost: cost,
       nutrients: nutrients
     }
 

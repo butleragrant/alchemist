@@ -6,6 +6,7 @@ const electron = require('electron');
 const $ = require('jquery');
 const bs = require('bootstrap');
 const meas = require('./model/Measurement.js');
+const fdCost = require('./model/FoodCost.js');
 const fs = require('fs');
 
 let control = new alch.Alchemist();
@@ -83,7 +84,7 @@ function renderMainPage() {
     let editCell = $('<td></td>');
     let deleteCell = $('<td></td>');
 
-    let factsButton = $('<button class="btn btn-primary" type="button">Nutrition Info</button>');
+    let factsButton = $('<button class="btn btn-primary" type="button">Recipe Info</button>');
     factsButton.click(function() {
       showNutritionInfo(rid);
     });
@@ -224,10 +225,10 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
 
   //Serving size field:
   let servingSize = recipeEditor.getServingSize();
-  $('#serving-size-input').val(servingSize.amount);
-  $('#serving-size-unit').val(servingSize.unit);
-  $('#serving-size-input, #serving-size-unit').change(function() {
-    recipeEditor.setServingSize($('#serving-size-input').val(), $('serving-size-unit').val());
+  $('#recipe-serving-size-input').val(servingSize.amount);
+  $('#recipe-serving-size-unit').val(servingSize.unit);
+  $('#recipe-serving-size-input, #recipe-serving-size-unit').change(function() {
+    recipeEditor.setServingSize($('#recipe-serving-size-input').val(), $('#recipe-serving-size-unit').val());
   });
 
 
@@ -297,7 +298,7 @@ function renderRecipeEditor(recipeEditor, doneCallback) {
     amountInput.val(subFoods[subFid].amount);
     amountCell.append(amountInput);
 
-    let unitSelect = $('<select id="serving-size-unit" class="form-control unit-select"/>)');
+    let unitSelect = $('<select class="form-control unit-select"/>)');
     populateUnitSelector(unitSelect);
     unitSelect.val(subFoods[subFid].unit);
     unitCell.append(unitSelect);
@@ -440,10 +441,26 @@ function editFood(fid, doneCallback) {
 }
 
 function renderFoodEditor(foodEditor, doneCallback) {
+
+  $('#food-name-input').val(foodEditor.getName());
+  $('#food-name-input').off('change').change(function() {
+    foodEditor.setName($('#food-name-input').val());
+  });
+
+  let foodCost = foodEditor.getFoodCost();
+  $('#food-cost-dollar-input').val(foodCost.costNumerator);
+  $('#food-cost-amount-input').val(foodCost.costDenominator.amount);
+  $('#food-cost-unit').val(foodCost.costDenominator.unit);
+
+  $('#food-cost-dollar-input, #food-cost-amount-input, #food-cost-unit').off('change').
+    change(function() {
+        foodEditor.setFoodCost(new fdCost.FoodCost($('#food-cost-dollar-input').val(),
+          new meas.Measurement($('#food-cost-amount-input').val(), $('#food-cost-unit').val())));
+    }
+  );
   //The recipe editor updates the editor object throughout the construction process
   //This is necessary for it but for the food editor, it can just do its updates
   //when the save button is clicked.
-  $('#food-name-input').val(foodEditor.getName());
 
   let servingSize = foodEditor.getServingSize();
   $('#food-serving-size-input').val(servingSize.amount);
@@ -543,6 +560,10 @@ function renderFoodEditor(foodEditor, doneCallback) {
     doneCallback();
   });
 
+  $('#cancel-food-edit-button').off('click').click(function() {
+    doneCallback();
+  });
+
   $('#edit-recipe-container').hide();
   $('#main-page-container').hide();
   $('#edit-food-container').show();
@@ -585,25 +606,28 @@ function setupNutritionInfo() {
       });
 
     });
-
-
-
-
-
   });
 }
 
 
 function showNutritionInfo(rid) {
-  let nutritionInfo = control.getNutrition(rid);
+  let recipeInfo = control.getRecipeInfo(rid);
   let ingredientString = control.ingredientString(rid);
   //unpack
-  let nutrients = nutritionInfo.nutrients;
-  let dailyValues = nutritionInfo.dailyValues;
+  let nutrients = recipeInfo.nutrients;
+  let dailyValues = recipeInfo.dailyValues;
+
 
   $('#nutrition-info-title').html(control.getRecipeName(rid));
 
-  $('#serving-size').html(nutritionInfo.servingSize.amountInUnit(0) + "g");
+  $('#nutrition-serving-size-amount').html(recipeInfo.servingSize.amount);
+  $('#nutrition-serving-size-unit').html(recipeInfo.servingSize.unit == 0 ? "g" : "oz.");
+
+  $('#nutrition-food-cost-amount').html(control.getFoodCost(rid, new meas.Measurement(1, $('#nutrition-food-cost-unit').val())));
+  $('#nutrition-food-cost-unit').off('change').change(function() {
+    $('#nutrition-food-cost-amount').html(control.getFoodCost(rid, new meas.Measurement(1, $('#nutrition-food-cost-unit').val())));
+  });
+
 
   $("#calories").html(nutrients["Calories"]);
   $("#total-fat").html(nutrients["Total Fat"]);
@@ -616,7 +640,12 @@ function showNutritionInfo(rid) {
   $("#total-sugars").html(nutrients["Total Sugars"]);
   $("#added-sugars").html(nutrients["Added Sugars"]);
   $("#protein").html(nutrients["Protein"]);
+  $('#vitamin-d').html(nutrients["Vitamin D"]);
+  $("#calcium").html(nutrients["Calcium"]);
+  $("#iron").html(nutrients["Iron"]);
+  $("#potassium").html(nutrients["Potassium"]);
 
+  $('#calories-dv').html(dailyValues["Calories"]);
   $("#total-fat-dv").html(dailyValues["Total Fat"]);
   $("#sat-fat-dv").html(dailyValues["Saturated Fat"]);
   $("#cholesterol-dv").html(dailyValues["Cholesterol"]);
@@ -629,7 +658,7 @@ function showNutritionInfo(rid) {
   $("#iron-dv").html(dailyValues["Iron"]);
   $("#potassium-dv").html(dailyValues["Potassium"]);
 
-  $('#ingredient-string').html("Ingredients: " + ingredientString);
+  $('#ingredient-string').html(ingredientString);
   $('#nutrition-info-modal').modal('show');
 }
 

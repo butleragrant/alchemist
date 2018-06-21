@@ -1,5 +1,6 @@
 const meas = require('./Measurement.js');
 const nutrition = require('./Nutrition.js');
+const fdCost = require('./FoodCost.js');
 
 /*
  * Food constructs an object representing a single food type and its nutrition
@@ -15,6 +16,7 @@ function Food(foodData) {
     this.name = "A Food";
     this.servingSize = new meas.Measurement();
     this.nutrients = {};
+    this.cost = new fdCost.FoodCost();
     Object.keys(nutrition.NUTRIENT_LIST).forEach((nid) => {
       this.nutrients[nid] = 0;
     });
@@ -24,6 +26,8 @@ function Food(foodData) {
       this.name = foodData.name;
       this.servingSize = new meas.Measurement(foodData.servingSize.amount,
           foodData.servingSize.unit);
+      this.cost = new fdCost.FoodCost(foodData.cost.costNumerator,
+        new meas.Measurement(foodData.cost.costDenominator.amount, foodData.cost.costDenominator.unit));
 
       let nutrientQuantities = {};
       Object.keys(nutrition.NUTRIENT_LIST).forEach((nid) => {
@@ -38,7 +42,6 @@ function Food(foodData) {
       //Do a couple checks:
       //UI shouldn't allow these two checks to fail but if they do, make sure
       //things are kept sensical
-
       if(nutrientQuantities["Added Sugars"] > nutrientQuantities["Total Sugars"]) {
         nutrientQuantities["Total Sugars"] = nutrientQuantities["Added Sugars"];
       }

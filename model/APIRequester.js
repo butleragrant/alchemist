@@ -29,6 +29,7 @@ function APIRequester(key, domain) {
   }
   //Function to search for foods:
   this.foodSearch = function(searchString, callback, numResults) {
+    console.log("searching with apiKey: " + key);
     if(searchString == null) {
       searchString = "";
     }

@@ -231,6 +231,24 @@ function RecipeBook(saveString) {
 
   }
 
+  this.calcCost = function(rid, quantity) {
+    console.log("calculating cost for quantity: " + quantity.amount);
+    if(recipeList.hasOwnProperty(rid)) {
+      let recipe = recipeList[rid];
+      console.log("amount in unit is: " + quantity.amountInUnit(0));
+      let foodTotals = totalFoods(rid, quantity.amountInUnit(0));
+      console.log("foodTotals is: " + JSON.stringify(foodTotals));
+      let totalCost = 0;
+      Object.keys(foodTotals).forEach((fid) => {
+        let cost = foodList[fid].cost.costPerGram() * foodTotals[fid];
+        totalCost += cost;
+      });
+
+      return totalCost * 100 / 100.0;
+    }
+
+    return null;
+  }
 
   this.calcNutrition = function(rid) {
     if(recipeList.hasOwnProperty(rid)) {
@@ -241,50 +259,6 @@ function RecipeBook(saveString) {
       return nutrients;
     } else {
       return null;
-    }
-
-    function totalFoods(rid, amount) {
-      let recipe = recipeList[rid];
-      let foodTotals = {};
-
-      let totalGrams = 0;
-
-      //
-      Object.keys(recipe.subFoods).forEach(function(subFid) {
-        let amountInGrams = recipe.subFoods[subFid].amountInUnit(0);
-        if(foodTotals.hasOwnProperty(subFid)) {
-          foodTotals[subFid] += amountInGrams;
-        } else {
-          foodTotals[subFid] = amountInGrams;
-        }
-
-        totalGrams += amountInGrams;
-      });
-
-      Object.keys(recipe.subRecipes).forEach(function(subRid) {
-        let amountInGrams = recipe.subRecipes[subRid].amountInUnit("grams");
-        let subRecipeFoods = totalFoods(subRid, amountInGrams);
-        Object.keys(subRecipeFoods).forEach(function(subRecipeFid) {
-          if(foodTotals.hasOwnProperty(subRecipeFid)) {
-            foodTotals[subRecipeFid] += subRecipeFoods[subRecipeFid];
-          } else {
-            foodTotals[subRecipeFid] = subRecipeFoods[subRecipeFid];
-          }
-        });
-
-        totalGrams += amountInGrams;
-      });
-
-      //Now we need to scale down to the proper amount:
-      //make sure no rounding:
-      let conversionFactor = amount * 1.0 / totalGrams;
-
-      let scaledFoods = {};
-      Object.keys(foodTotals).forEach(function(fid) {
-        scaledFoods[fid] = foodTotals[fid] * conversionFactor;
-      });
-
-      return scaledFoods;
     }
 
     function totalNutrients(foodTotals) {
@@ -303,6 +277,59 @@ function RecipeBook(saveString) {
 
       return nutrients;
     }
+  }
+
+  function totalFoods(rid, amount) {
+    let recipe = recipeList[rid];
+    let foodTotals = {};
+
+    let totalGrams = 0;
+
+    //
+    Object.keys(recipe.subFoods).forEach(function(subFid) {
+      console.log("iterating subFood: " + subFid);
+      let amountInGrams = recipe.subFoods[subFid].amountInUnit(0);
+      if(foodTotals.hasOwnProperty(subFid)) {
+        foodTotals[subFid] += amountInGrams;
+      } else {
+        foodTotals[subFid] = amountInGrams;
+      }
+
+      totalGrams += amountInGrams;
+    });
+    console.log("totalGrams is: " + totalGrams + " after iterating subFoods");
+
+    Object.keys(recipe.subRecipes).forEach(function(subRid) {
+      console.log("iterating subRecipe: " + subRid);
+      let amountInGrams = recipe.subRecipes[subRid].amountInUnit(0);
+      let subRecipeFoods = totalFoods(subRid, amountInGrams);
+      Object.keys(subRecipeFoods).forEach(function(subRecipeFid) {
+        if(foodTotals.hasOwnProperty(subRecipeFid)) {
+          foodTotals[subRecipeFid] += subRecipeFoods[subRecipeFid];
+        } else {
+          foodTotals[subRecipeFid] = subRecipeFoods[subRecipeFid];
+        }
+      });
+
+      totalGrams += amountInGrams;
+    });
+    console.log("totalGrams is: " + totalGrams + " after iterating subRecipes");
+    console.log("un-scaled foods is: " + JSON.stringify(foodTotals));
+
+    //Now we need to scale down to the proper amount:
+    //make sure no rounding:
+    let conversionFactor = amount * 1.0 / totalGrams;
+
+    console.log("amount is: " + amount);
+    console.log("totalGrams is " + totalGrams);
+    console.log("conversionFactor is " + conversionFactor);
+
+    let scaledFoods = {};
+    Object.keys(foodTotals).forEach(function(fid) {
+      scaledFoods[fid] = foodTotals[fid] * conversionFactor;
+    });
+
+    return scaledFoods;
   }
 
 }
